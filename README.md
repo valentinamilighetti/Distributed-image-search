@@ -22,6 +22,64 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 - Configurazione con NAT 
 - Installazione di Hadoop 3.4.1 su `namenode` e `datanode1`
 
+### Spark versione 3.5.6
+Fare riderimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
+- Scaricare l'archivio Spark
+  ```bash
+  wget https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6.tgz
+  ```
+- Creare una directory dedicata dove estrarre il file tar
+  ```bash
+  mkdir ~/spark
+  mv spark-3.5.6.tgz spark/
+  cd ~/spark
+  tar -xvzf spark-3.5.1.tgz
+  ```
+- Configurazione delle variabili d'ambiente nel file Bash:
+  ```bash
+  nano ~/.bashrc
+
+  # aggiungere le seguenti variabili sul nodo master
+  export HADOOP_HOME="/usr/local/hadoop"
+  export HADOOP_COMMON_HOME=$HADOOP_HOME
+  export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+  export HADOOP_HDFS_HOME=$HADOOP_HOME
+  export HADOOP_MAPRED_HOME=$HADOOP_HOME
+  export HADOOP_YARN_HOME=$HADOOP_HOME
+  export SPARK_HOME=~/spark/spark-3.5.6-bin-hadoop3
+  export PATH=$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
+  export PYSPARK_PYTHON=~/pytorch_env/bin/python3
+  export PYSPARK_DRIVER_PYTHON=jupyter
+  export PYSPARK_DRIVER_PYTHON_OPTS='notebook --ip=192.168.100.4 --no-browser --port=8889'
+  export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+  export CLASSPATH=$($HADOOP_HOME/bin/hadoop classpath --glob):$HADOOP_CONF_DIR
+
+  # aggiungere le seguenti variabili sul nodo worker
+  export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+  export SPARK_HOME=~/spark/spark-3.5.6-bin-hadoop3
+  export PATH=$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
+  export PYSPARK_PYTHON=~/pytorch_env/bin/python3
+
+  # aggiornare le variabili su entrambi i nodi
+  source ~/.bashrc
+  ```
+- Configurazione del file `spark-env.sh` sul nodo master
+  ```bash
+  cd ~/spark/spark-3.5.6 …../conf$ 
+  cp spark-env.sh.template spark-env.sh
+  sudo nano spark-env.sh
+  
+  #aggiungere 
+  export SPARK_MASTER_HOST=192.168.0.4
+  export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+  ```
+- Creare il file `slaves` sul nodo master e inserire i nomi di master e slave:
+  ```bash
+  namenode
+  Datanode1
+  ```
+
+
 ### Python e pacchetti necessari
 - Creazione ambiente virtuale con **Python 3.11**
   ```bash
@@ -47,14 +105,9 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
   pyspark
   ```
 
-### Spark
-- Versione: **3.5.6**
-- Integrazione con Hadoop via variabili d’ambiente 
-- Configurazione di `spark-env.sh` e file `slaves`
-
 ### Milvus
 
-La versione è **Milvus Standalone** tramite Docker Compose, che funziona tramite container attivi sul nodo master: `milvus-standalone`, `etcd`, `minio`
+La versione è **Milus Standalone** tramite Docker Compose, che funziona tramite container attivi sul nodo master: `milvus-standalone`, `etcd`, `minio`
 
 Installazione di Docker Compose (sul nodo master):
 ```bash
@@ -95,7 +148,7 @@ mkdir -p ~/milvus
 cd ~/milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
-Fare riferimento al file [docker-compose.yml](docker-compose.yml)) per le modifiche da apportare per adattare le risorse della VM al funzionamento sul nodo master.
+Fare riferimento al file [docker-compose.yml](docker-compose.yml) per le modifiche da apportare per adattare le risorse della VM al funzionamento sul nodo master.
 
 Avvia i container Milvus:
 ```bash
