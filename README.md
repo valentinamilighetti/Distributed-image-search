@@ -36,7 +36,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
 3. installare e configurare **SSH**, necessario per la comunicazione tra i nodi del cluster
 4. installare **Java openjdk versione 11** (al posto della versione 8)
     ```bash
-    sudo apt install openjdk-8-jdk
+    sudo apt install openjdk-11-jdk
     ```
 5. Scaricare ed estrarre **Hadoop versione 3.4.1** da apache.org
     ```bash
@@ -47,10 +47,12 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     mv hadoop-3.4.1 hadoop
     # modificare il file di configurazione `hadoop_env.sh`
     nano ~/hadoop/etc/hadoop/hadoop-env.sh
-    # aggiungere nel file il riferimento a JAVA_HOME
+    ```
+    aggiungere nel file il riferimento a JAVA_HOME
+    ```bash   
     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/
     ```
-6. modifica variabili di ambiente per hadoop
+6. modifica **variabili di ambiente** per hadoop
     ```bash
     #modificare le variabili di sistema con il comando
     sudo nano /etc/environment
@@ -60,24 +62,29 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     ```
 7. creare un nuovo utente `hadoopuser` che verrà usato dai nodi del cluster e fornirgli tutti i permessi di root
 8. in VirtualBox clonare la VM appena creata per creare la VM worker
+#### VM Master e Worker
 9. modificare gli **hostname** di entrambe le VM usando il comando
     ```bash
     sudo nano /etc/hostname
     ```
-  in questo caso la VM Master è stata chiamata *namenode*
+    in questo caso la VM Master è stata chiamata *namenode*
   mentre la VM worker è stata chiamata *datanode1*
+
 10. modificare in entrambe le VM il file hosts che associa gli indirizzi ip delle macchine con il loro hostname. 
-    ```bash
-    # ottenere l\'indirizzo ip associato a entrambe le VM
+
+  ```bash
+    # ottenere indirizzo ip associato a entrambe le VM
     ip addr
     #modificare il file hosts in ciascuna VM
     sudo nano /etc/hosts
-    ```
-    ad esempio il file hosts in questo caso è il seguente (da adattare alla configurazione specifica)
-    ```
+  ```
+
+  ad esempio il file hosts in questo caso è il seguente (da adattare alla configurazione specifica)
+
+  ```bash
     192.168.100.4 namenode
     192.168.100.5 datanode1
-    ```
+  ```
 11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
 12. da finire....
 ### Spark
