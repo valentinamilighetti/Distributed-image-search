@@ -33,31 +33,97 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 - Avvio di **Jupyter Notebook** dal nodo master
 
 ### Milvus
-- Supporto a due modalità:
-  - **Milvus Lite** via `pymilvus`
-  - **Milvus Standalone** tramite Docker Compose
-- Tre container attivi: `milvus-standalone`, `etcd`, `minio`
+
+La versione è **Milvus Standalone** tramite Docker Compose, che funziona tramite container attivi sul nodo master: `milvus-standalone`, `etcd`, `minio`
+
+Installazione di Docker Compose (sul nodo master):
+```bash
+sudo apt-get update
+sudo apt-get install \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  (lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+Per avviare il servizio:
+```bash
+sudo systemctl start docker
+# Abilita l'avvio di Docker all'avvio del sistema
+sudo systemctl enable docker
+# Verifica che il servizio Docker sia in esecuzione
+sudo systemctl status docker
+# Verifica l’istallazione di docker con l’immagine hello world:
+sudo docker run hello-world
+# Gestire Docker come utente non root: creazione del gruppo docker
+sudo groupadd docker
+# Aggiungi l’user al gruppo
+sudo usermod -aG docker $USER
+newgrp docker
+# Verifica: esegui hello world senza sudo:
+docker run hello-world
+# Verifica l’istallazione del plugin docker compose
+docker compose version
+```
+Scaricare il file di configurazione Docker per Milvus:
+```bash
+mkdir -p ~/milvus
+cd ~/milvus
+wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
+```
+Avvia i container Milvus:
+```bash
+docker compose up -d
+# Verifica lo stato dei container
+docker compose ps
+# Stop Milvus
+docker compose down
+```
+Milvus è accessibile dalla porta 19530
 
 ### Backend API
 - Realizzato con **FastAPI**
+- Installazione:
+  ```bash
+  pip install fastapi "uvicorn[standard]" python-multipart
 - Avvio del server con:
   ```bash
   uvicorn main:app --reload
+  ```
 
 ## Dataset
 
-Il progetto utilizza il dataset Flickr30k Images disponibile su Kaggle
-.
-Le immagini vengono caricate su HDFS e indicizzate in Milvus dopo l’estrazione degli embedding.
+Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) e contiene circa 30000 immagini.
+
+## Utilizzo
 
 ## Risorse Utili
 
-Guida configurazione Hadoop
+- [Guida alla configurazione di Hadoop](https://medium.com/analytics-vidhya/setting-up-hadoop-3-2-1-d5c58338cba1)
 
-Installazione Spark
+- [Guida alla configurazione di Spark](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
 
-Milvus Quickstart
+- [Altra guida per Spark](https://aws.plainenglish.io/how-to-setup-install-an-apache-spark-3-1-1-cluster-on-ubuntu-817598b8e198)
 
-Image Embedding per ricerca
+- [Guida per pyspark per notebook](https://www.bmc.com/blogs/jupyter-notebooks-apache-spark/)
 
-PyTorch + PySpark distribuito (NVIDIA)
+- [Milvus Quickstart](https://milvus.io/docs/it/quickstart.md)
+
+- [Integrazione dei file Parquet con Milvus](https://milvus.io/it/blog/milvus-supports-apache-parquet-file-supports.md)
+
+- [Image Embedding per image search (Pinecone)](https://www.pinecone.io/learn/series/image-search/)
+
+- [Image Embedding per image search (Medium)](https://medium.com/thedeephub/image-embeddings-for-enhanced-image-search-f35608752d42)
+
+- [Image Similarity (Hugging Face)](https://huggingface.co/blog/image-similarity)
+
+- [Uso di PyTorch con pyspark (NVIDIA)](https://developer.nvidia.com/blog/distributed-deep-learning-made-easy-with-spark-3-4/)
+
+- [Distribuited Training per Spark ML (databricks)](https://docs.databricks.com/aws/en/machine-learning/train-model/distributed-training/)
+
+- [Esempio di integrazione PyTorch + PySpark distribuito (NVIDIA)](https://github.com/NVIDIA/spark-rapids-examples/tree/branch-23.06/examples/ML%2BDL-Examples/Spark-DL/dl_inference)
