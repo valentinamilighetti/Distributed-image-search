@@ -22,15 +22,35 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 - Configurazione con NAT 
 - Installazione di Hadoop 3.4.1 su `namenode` e `datanode1`
 
+### Python e pacchetti necessari
+- Creazione ambiente virtuale con **Python 3.11**
+  ```bash
+  sudo apt install python3.11 python3.11-venv
+  python3.11 -m venv pytorch_env
+  source pytorch_env/bin/activate 
+  ```
+- Installazione pacchetti:
+  ```bash
+  pip install pyspark==3.5.6
+  pip install pyarrow==12.0.1
+  pip install numpy==1.26.4 pandas
+  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+  pip install pymilvus
+
+  # solo sul master
+  pip install notebook
+  pip install jupyter
+  ```
+- Avvio di **Jupyter Notebook** dal nodo master
+  ```bash
+  source pytorch_env/bin/activate 
+  pyspark
+  ```
+
 ### Spark
 - Versione: **3.5.6**
 - Integrazione con Hadoop via variabili d’ambiente 
 - Configurazione di `spark-env.sh` e file `slaves`
-
-### PyTorch + PySpark
-- Creazione ambiente virtuale con **Python 3.11**
-- Installazione pacchetti: `pyspark`, `pyarrow`, `numpy`, `torch`, `torchvision`, `pymilvus`
-- Avvio di **Jupyter Notebook** dal nodo master
 
 ### Milvus
 
@@ -46,8 +66,7 @@ sudo apt-get install \
   lsb-release
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+echo \  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   (lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
@@ -76,6 +95,8 @@ mkdir -p ~/milvus
 cd ~/milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
+Fare riferimento al file [docker-compose.yml](docker-compose.yml)) per le modifiche da apportare per adattare le risorse della VM al funzionamento sul nodo master.
+
 Avvia i container Milvus:
 ```bash
 docker compose up -d
