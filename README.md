@@ -177,7 +177,40 @@ Milvus è accessibile dalla porta 19530
 
 Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) e contiene circa 30000 immagini.
 
-## Utilizzo
+## Calcolo degli embedding e caricamento su Milvus
+Dopo il download del dataset è necessario il suo caricamento su hdfs, attraverso il comando 
+```bash
+hadoop distcp file:///home/hadoopuser/flickr30k_images hdfs:///user/hadoopuser/flickr30k_images
+```
+Le fasi successive sono state svolte attraverso il [notebook Jupyter](image_embedding_spark.ipynb)
+
+### Calcolo degli embedding
+- È stato utilizzato [resnet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), un modello pre-addestrato già presente su torchvision.
+  ```bash
+  import torch
+  import torchvision.models as models
+
+  weights = models.ResNet50_Weights.DEFAULT
+  model = models.resnet50(weights=weights)
+  state_dict = model.state_dict()
+  torch.save(state_dict, "/tmp/resnet50_statedict2.pth")
+
+  sc.addFile("/tmp/resnet50_statedict2.pth")
+  ```
+- Una volta avviata una SparkSession con 2 esecutori (il namenode e il datanode1), viene caricato il dataset da hdfs
+  ```bash
+  df = spark.read.format("binaryFile").load("hdfs:///user/hadoopuser/flickr30k_images/flickr30k_images/").select("path", "content")
+  ```
+- 
+
+### Salvataggio degli embedding dal file Parquet al database vettoriale Milvus
+- Inizialmente, viene caricato il file Parquet da hdfs
+  ```bash
+  df_from_parquet = spark.read.parquet("hdfs:///user/hadoopuser/flickr_image_embeddings_parquet/")
+  ```
+
+
+## Ricerca delle immagini per similarità
 
 ## Risorse Utili
 
