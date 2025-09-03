@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Search | Find Your Inspiration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-images"></i>
+            </div>
+            <h1>Distribuited Image Search</h1>
+            <p>Upload an image to search for similar images from the Flickr30k database</p>
+            <p>Note: if the original image appears in the results, it means that it is already present in the dataset.</p>
+        </header>
+        
+        <div class="search-panel">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="upload-text">
+                    <h3>Upload your image</h3>
+                    <p>Click or drag & drop to upload</p>
+                </div>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+            
+            <div class="preview-container">
+                <img id="imagePreview" alt="Image preview">
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <span class="control-label">Number of results:</span>
+                    <select id="resultCount">
+                        <option value="2">2</option>
+                        <option value="4" selected>4</option>
+                        <option value="6">6</option>
+                        <option value="8">8</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+                
+                <button class="btn" onclick="searchImages()">
+                    <i class="fas fa-search"></i> Search Images
+                </button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Searching for similar images...</p>
+        </div>
+        
+        <div class="results-header">
+            <h2 class="results-title">Search Results</h2>
+        </div>
+        
+        <div id="results">
+            <div class="no-results">
+                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>Upload an image to find similar results</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- The Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close" id="closeModal">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div class="modal-caption" id="modalCaption"></div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const resultCount = document.getElementById('resultCount');
+        const loading = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+        
+        // Modal elements
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const modalCaption = document.getElementById('modalCaption');
+        const closeModal = document.getElementById('closeModal');
+        
+        // Upload area functionality
+        uploadArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+            
+            if (e.dataTransfer.files.length) {
+                imageInput.files = e.dataTransfer.files;
+                previewImage();
+            }
+        });
+        
+        imageInput.addEventListener('change', previewImage);
+        
+        function previewImage() {
+            const file = imageInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Modal functionality
+        function openModal(imgSrc, similarity) {
+            modalImg.src = imgSrc;
+            modalCaption.textContent = `Similarity: ${(similarity * 100).toFixed(1)}%`;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+        
+        closeModal.addEventListener('click', () => {
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto'; // Re-enable scrolling
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+        });
+        
+        async function searchImages() {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert('Please select an image first.');
+                return;
+            }
+            
+            const count = resultCount.value;
+            
+            // Show loading state
+            loading.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('count', count);
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/search_similar?count=${count}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Hide loading state
+                loading.style.display = 'none';
+                
+                // Display results
+                resultsDiv.innerHTML = '';
+                
+                if (data.length === 0) {
+                    resultsDiv.innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                            <p>No similar images found. Try a different image.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                data.forEach(item => {
+                    const url = new URL(item.path);
+                    const imgPath = url.pathname;
+                    const imgUrl = "/image/?path=" + encodeURIComponent(imgPath);
+                    const similarityPercent = (item.similarity * 100).toFixed(1);
+                    
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.innerHTML = `
+                        <img src="${imgUrl}" class="result-img" alt="Search result">
+                			<div class="result-info">
+                    			<div class="similarity-bar">
+                        			<div class="similarity-fill" style="width: ${similarityPercent}%"></div>
+                    			</div>
+                    			<div class="similarity-text">
+                        			<span>Similarity:</span>
+                        			<span class="similarity-value">${similarityPercent}%</span>
+                    			</div>
+                			</div>
+            			`;
+                    			
+                    // Add click event to open modal
+                    resultItem.addEventListener('click', () => {
+                        openModal(imgUrl, item.similarity);
+                    });
+                    
+                    resultsDiv.appendChild(resultItem);
+                });
+            } catch (e) {
+                loading.style.display = 'none';
+                resultsDiv.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 15px; color: #dc3545;"></i>
+                        <p>Error: ${e.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
