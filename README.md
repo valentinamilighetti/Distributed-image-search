@@ -23,7 +23,7 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 - Installazione di Hadoop 3.4.1 su `namenode` e `datanode1`
 
 ### Spark versione 3.5.6
-Fare riderimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
+Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
 - Scaricare l'archivio Spark
   ```bash
   wget https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6.tgz
@@ -78,7 +78,10 @@ Fare riderimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
   namenode
   Datanode1
   ```
-
+- Per avviare master e slave:
+  ```bash
+  start-all.sh
+  ```
 
 ### Python e pacchetti necessari
 - Creazione ambiente virtuale con **Python 3.11**
