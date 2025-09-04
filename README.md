@@ -87,10 +87,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
   ```
 11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
 12. da finire....
-### Spark
-- Versione: **3.5.6**
-- Integrazione con Hadoop via variabili d’ambiente 
-- Configurazione di `spark-env.sh` e file `slaves`
+
 ### Spark versione 3.5.6
 Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
 - Scaricare l'archivio Spark
