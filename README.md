@@ -87,10 +87,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
   ```
 11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
 12. da finire....
-### Spark
-- Versione: **3.5.6**
-- Integrazione con Hadoop via variabili d’ambiente 
-- Configurazione di `spark-env.sh` e file `slaves`
+
 ### Spark versione 3.5.6
 Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
 - Scaricare l'archivio Spark
@@ -179,7 +176,7 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
 
 ### Milvus
 
-La versione è **Milus Standalone** tramite Docker Compose, che funziona tramite container attivi sul nodo master: `milvus-standalone`, `etcd`, `minio`
+La versione è **Milus Standalone** tramite Docker Compose, che funziona tramite 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
 
 Installazione di Docker Compose (sul nodo master):
 ```bash
@@ -280,6 +277,31 @@ Le fasi successive sono state svolte attraverso il [notebook Jupyter](image_embe
 
 
 ## Ricerca delle immagini per similarità
+
+## Come Eseguire il Progetto
+Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per similarità delle immagini.
+1. Come primo passaggio, avviare hdfs, yarn, Milvus e pyspark sul master:
+    ```bash
+    start.dfs.sh
+    start-yarn.sh
+    start-all.sh
+    cd ~/milvus
+    docker compose up -d
+    ```
+2. Aprire Jupyter Notebook ed eseguire tutte le celle di [image_embedding_spark.ipynb](image_embedding_spark.ipynb)
+    ```bash
+    source pytorch_env/bin/activate
+    pyspark
+    ```
+3. Avviare FastAPI
+    ```bash
+    uvicorn main:app --reload
+    ```
+4. Collegarsi a [127.0.0.1:8000](http://127.0.0.1:8000/)
+5. Caricare un'immagine e selezionare il numero di immagini da mostrare ad output
+6. Visualizzare i risultati
+
+Nota: il passaggio 2 viene eseguito solo la prima volta, perchè successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
 
 ## Risorse Utili
 
