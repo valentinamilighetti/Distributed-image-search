@@ -3,6 +3,28 @@
 Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di image embedding e un database vettoriale (Milvus) per l’indicizzazione e la ricerca per similarità.
 
 ---
+### Sommario
+- [Ricerca di immagini simili con Hadoop, Spark, PyTorch e Milvus](#ricerca-di-immagini-simili-con-hadoop-spark-pytorch-e-milvus)
+    - [Sommario](#sommario)
+  - [Architettura del Progetto](#architettura-del-progetto)
+  - [Configurazione Cluster](#configurazione-cluster)
+    - [Hadoop](#hadoop)
+      - [VM Master NameNode](#vm-master-namenode)
+      - [VM Master e Worker](#vm-master-e-worker)
+    - [Spark versione 3.5.6](#spark-versione-356)
+    - [Python e pacchetti necessari](#python-e-pacchetti-necessari)
+    - [Milvus](#milvus)
+    - [Backend API](#backend-api)
+  - [Dataset](#dataset)
+  - [Notebook: calcolo degli embedding e caricamento su Milvus](#notebook-calcolo-degli-embedding-e-caricamento-su-milvus)
+    - [1. Caricamento del modello ResNet50](#1-caricamento-del-modello-resnet50)
+    - [2. Lettura del dataset da HDFS](#2-lettura-del-dataset-da-hdfs)
+    - [3. Generazione distribuita degli Embedding](#3-generazione-distribuita-degli-embedding)
+    - [4. Salvataggio degli Embedding su HDFS (formato Parquet)](#4-salvataggio-degli-embedding-su-hdfs-formato-parquet)
+    - [5. Caricamento su Milvus](#5-caricamento-su-milvus)
+  - [Applicazione web per la ricerca delle immagini](#applicazione-web-per-la-ricerca-delle-immagini)
+  - [Come Eseguire il Progetto](#come-eseguire-il-progetto)
+  - [Risorse Utili](#risorse-utili)
 
 ## Architettura del Progetto
 
