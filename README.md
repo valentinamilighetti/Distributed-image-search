@@ -7,7 +7,7 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 ## Architettura del Progetto
 
 - **Hadoop** su cluster a 2 VM (1 master - `namenode`, 1 worker - `datanode1`)
-- **Spark 3.5.6** per il calcolo distribuito e l'archiviazione delle immagini su hdfs
+- **Spark 3.5.6** per il calcolo distribuito e l'archiviazione delle immagini su HDFS
 - **PyTorch** per la generazione degli embedding delle immagini
 - **Milvus** come database vettoriale per l’indicizzazione e la ricerca
 - **FastAPI** come backend per l’esposizione delle API
@@ -224,10 +224,13 @@ Avvia i container Milvus:
 docker compose up -d
 # Verifica lo stato dei container
 docker compose ps
-# Stop Milvus
-docker compose down
 ```
 Milvus è accessibile dalla porta 19530
+
+Per terminare e chiudere i container:
+```bash
+docker compose down
+```
 
 ### Backend API
 - Realizzato con **FastAPI**
@@ -243,44 +246,133 @@ Milvus è accessibile dalla porta 19530
 
 Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) e contiene circa 30000 immagini.
 
-## Calcolo degli embedding e caricamento su Milvus
-Dopo il download del dataset è necessario il suo caricamento su hdfs, attraverso il comando 
+Dopo il download del dataset è necessario il suo caricamento su HDFS, attraverso il comando 
 ```bash
 hadoop distcp file:///home/hadoopuser/flickr30k_images hdfs:///user/hadoopuser/flickr30k_images
 ```
-Le fasi successive sono state svolte attraverso il [notebook Jupyter](image_embedding_spark.ipynb)
 
-### Calcolo degli embedding
-- È stato utilizzato [resnet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), un modello pre-addestrato già presente su torchvision.
-  ```bash
-  import torch
-  import torchvision.models as models
+## Notebook: calcolo degli embedding e caricamento su Milvus
 
-  weights = models.ResNet50_Weights.DEFAULT
-  model = models.resnet50(weights=weights)
-  state_dict = model.state_dict()
-  torch.save(state_dict, "/tmp/resnet50_statedict2.pth")
+Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) ha il compito di leggere le immagini dal cluster HDFS, calcolare i vettori di embedding per ciascuna di esse in modo distribuito utilizzando Spark, e infine indicizzare questi vettori nel database Milvus per renderli ricercabili.
 
-  sc.addFile("/tmp/resnet50_statedict2.pth")
-  ```
-- Una volta avviata una SparkSession con 2 esecutori (il namenode e il datanode1), viene caricato il dataset da hdfs
+Di seguito sono illustrati i passaggi chiave del processo.
+
+### 1. Caricamento del modello ResNet50
+  È stato utilizzato [resnet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), un modello pre-addestrato già presente su torchvision come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
+  - Il modello viene salvato e distribuito sugli esecutori Spark
+    ```bash
+    import torch
+    import torchvision.models as models
+
+    # Carica il modello sul nodo driver
+    weights = models.ResNet50_Weights.DEFAULT
+    model = models.resnet50(weights=weights)
+    state_dict = model.state_dict()
+
+    # Salva i pesi e li rende disponibili a tutti i nodi del cluster
+    torch.save(state_dict, "/tmp/resnet50_statedict2.pth")
+    sc.addFile("/tmp/resnet50_statedict2.pth")
+    ```
+    Il salvataggio dei pesi del modello in un file nello SparkContext permette di distribuire in modo efficiente il modello a tutti gli esecutori che ne avranno bisogno per il calcolo.
+### 2. Lettura del dataset da HDFS
+Le immagini vengono caricate come file binari in un DataFrame Spark:
   ```bash
   df = spark.read.format("binaryFile").load("hdfs:///user/hadoopuser/flickr30k_images/flickr30k_images/").select("path", "content")
   ```
-- 
+### 3. Generazione distribuita degli Embedding
 
-### Salvataggio degli embedding dal file Parquet al database vettoriale Milvus
-- Inizialmente, viene caricato il file Parquet da hdfs
-  ```bash
-  df_from_parquet = spark.read.parquet("hdfs:///user/hadoopuser/flickr_image_embeddings_parquet/")
-  ```
+Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una User Defined Function (UDF) ottimizzata per l'elaborazione in batch (predict_batch_udf). La logica è la seguente:
 
+- **Inizializzazione per Worker**: Su ciascun esecutore Spark, una funzione (make_resnet_fn) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
+- **Elaborazione in Batch**: La UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
+- **Calcolo in parallelo**: Spark gestisce automaticamente la distribuzione dei dati tra i vari esecutori
+```bash
+# Applica la UDF per calcolare gli embedding sulla colonna 'content'
+df_with_emb = df.withColumn("embedding", resnet_udf(col("content")))
+```
+Il risultato è un DataFrame Spark con:
 
-## Ricerca delle immagini per similarità
+- **path**: percorso dell'immagine su HDFS
+  
+- **embedding**: vettore numerico 
+
+### 4. Salvataggio degli Embedding su HDFS (formato Parquet)
+Una volta calcolati, gli embedding vengono salvati su HDFS in formato Parquet, un formato colonnare ottimizzato per letture veloci in Spark, indicato per dataset di grandi dimensioni.
+```bash
+df_embeddings.write.mode("overwrite").parquet(
+    "hdfs:///user/hadoopuser/flickr_image_embeddings_parquet/"
+)
+```
+
+### 5. Caricamento su Milvus
+L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine e embedding) nel database vettoriale Milvus. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
+1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una "collezione" (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine (testo) e l'embedding (vettore a virgola mobile).
+    ```bash
+    import pymilvus
+
+    connections.connect("default", host=MILVUS_HOST, port=MILVUS_PORT)
+    # Definisce lo schema della collezione
+    fields = [
+        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=False),
+        FieldSchema(name="path", dtype=DataType.VARCHAR, max_length=65535), 
+        FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=DIMENSION)
+    ]
+    schema = CollectionSchema(fields, description="Image embeddings generated with Spark")
+    # Crea la collezione
+    collection = Collection(name=COLLECTION_NAME, schema=schema)
+    ```
+2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando notevolmente il di caricamento.
+   ```bash
+   df_with_ids = df_from_parquet.withColumn("id", monotonically_increasing_id())
+   df_with_ids.foreachPartition(upload_partition_to_milvus)
+   # ciascuna partizione farà
+   collection.insert(data_to_insert)
+   ```
+3. **Creazione dell'Indice e Caricamento in Memoria**: Una volta che tutti i dati sono stati inseriti, dal driver vengono inviati a Milvus i comandi finali:
+    ```bash
+    # Per assicurare che tutti i dati siano stati scritti su disco:
+    collection.flush()
+    # Definisce i parametri per l'indice
+    index_params = {
+        "metric_type": "COSINE",       # Metrica di distanza (cosine)
+        "index_type": "IVF_FLAT",  
+        "params": {"nlist": 1024}  
+    }
+    collection.create_index(field_name="embedding", index_params=index_params)
+    # Carica la collezione in memoria per renderla disponibile alle ricerche
+    collection.load()
+    ```
+    La metrica di distanza utilizzata per calcolare le similarità tra immagini è `COSINE`.
+
+## Applicazione web per la ricerca delle immagini 
+L'interfaccia utente è un'applicazione web costruita con FastAPI come backend e un frontend basato su un singolo file HTML:
+- **Frontend([index.html](index.html))**: è realizzata con HTML, CSS e JavaScript e permette di caricare un'immagine tramite click o trascinamento (drag & drop), selezionare il numero di risultati desiderati e visualizzare le immagini simili restituite dal sistema.
+- **Backend([main.py](main.py))** un server web basato su FastAPI che espone le API necessarie per la ricerca. All'avvio, il server si connette a Milvus e carica in memoria la collezione di immagini. Gestisce due endpoint principali:
+  - `POST /search_similar`: riceve l'immagine caricata dall'utente per la ricerca di immagini simili. Il codice Python prevede le due seguenti funzioni, per il rispettivo calcolo dell'embedding dell'immagine di input e la ricerca su Milvus di k immagini di output:
+    ```bash
+    def get_embedding(image: Image.Image) -> np.ndarray:
+        """Converte un'immagine in embedding 2048-dim con ResNet50"""
+        tensor = transform(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            emb = model(tensor).cpu().numpy().flatten()
+        return emb / np.linalg.norm(emb)  # normalizza per COSINE
+
+    def search_similar_images(query_img: Image.Image, topk=5):
+        emb = get_embedding(query_img)
+        results = collection.search(
+            data=[emb.tolist()],
+            anns_field="embedding",
+            param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+            limit=topk,
+            output_fields=["path"]
+        )
+        return results[0]
+    ```
+  - `GET /image/`: recupera e trasmette un file immagine direttamente da HDFS, dato il suo percorso. Utilizzato per trasmettere le immagini di output
 
 ## Come Eseguire il Progetto
 Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per similarità delle immagini.
-1. Come primo passaggio, avviare hdfs, yarn, Milvus e pyspark sul master:
+1. Come primo passaggio, avviare HDFS, yarn, Milvus e pyspark sul master:
     ```bash
     start.dfs.sh
     start-yarn.sh
@@ -301,7 +393,7 @@ Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per
 5. Caricare un'immagine e selezionare il numero di immagini da mostrare ad output
 6. Visualizzare i risultati
 
-Nota: il passaggio 2 viene eseguito solo la prima volta, perchè successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
+**Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
 
 ## Risorse Utili
 
