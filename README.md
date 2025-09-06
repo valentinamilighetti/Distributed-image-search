@@ -3,28 +3,6 @@
 Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di image embedding e un database vettoriale (Milvus) per l’indicizzazione e la ricerca per similarità.
 
 ---
-### Sommario
-- [Ricerca di immagini simili con Hadoop, Spark, PyTorch e Milvus](#ricerca-di-immagini-simili-con-hadoop-spark-pytorch-e-milvus)
-    - [Sommario](#sommario)
-  - [Architettura del Progetto](#architettura-del-progetto)
-  - [Configurazione Cluster](#configurazione-cluster)
-    - [Hadoop](#hadoop)
-      - [VM Master NameNode](#vm-master-namenode)
-      - [VM Master e Worker](#vm-master-e-worker)
-    - [Spark versione 3.5.6](#spark-versione-356)
-    - [Python e pacchetti necessari](#python-e-pacchetti-necessari)
-    - [Milvus](#milvus)
-    - [Backend API](#backend-api)
-  - [Dataset](#dataset)
-  - [Notebook: calcolo degli embedding e caricamento su Milvus](#notebook-calcolo-degli-embedding-e-caricamento-su-milvus)
-    - [1. Caricamento del modello ResNet50](#1-caricamento-del-modello-resnet50)
-    - [2. Lettura del dataset da HDFS](#2-lettura-del-dataset-da-hdfs)
-    - [3. Generazione distribuita degli Embedding](#3-generazione-distribuita-degli-embedding)
-    - [4. Salvataggio degli Embedding su HDFS (formato Parquet)](#4-salvataggio-degli-embedding-su-hdfs-formato-parquet)
-    - [5. Caricamento su Milvus](#5-caricamento-su-milvus)
-  - [Applicazione web per la ricerca delle immagini](#applicazione-web-per-la-ricerca-delle-immagini)
-  - [Come Eseguire il Progetto](#come-eseguire-il-progetto)
-  - [Risorse Utili](#risorse-utili)
 
 ## Architettura del Progetto
 
@@ -93,20 +71,17 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
   mentre la VM worker è stata chiamata *datanode1*
 
 10. modificare in entrambe le VM il file hosts che associa gli indirizzi ip delle macchine con il loro hostname. 
-
-  ```bash
+    ```bash
     # ottenere indirizzo ip associato a entrambe le VM
     ip addr
     #modificare il file hosts in ciascuna VM
     sudo nano /etc/hosts
-  ```
-
-  ad esempio il file hosts in questo caso è il seguente (da adattare alla configurazione specifica)
-
-  ```bash
+    ```
+    ad esempio, il file hosts in questo caso è il seguente (da adattare alla configurazione specifica):
+    ```bash
     192.168.100.4 namenode
     192.168.100.5 datanode1
-  ```
+    ```
 11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
 12. da finire....
 
@@ -198,9 +173,9 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
 
 ### Milvus
 
-La versione è **Milus Standalone** tramite Docker Compose, che funziona tramite 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
+La versione è **Milus Standalone** tramite Docker Compose, che utilizza 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
 
-Installazione di Docker Compose (sul nodo master):
+#### 1. Installazione di Docker Compose (sul nodo master)
 ```bash
 sudo apt-get update
 sudo apt-get install \
@@ -233,21 +208,22 @@ docker run hello-world
 # Verifica l’istallazione del plugin docker compose
 docker compose version
 ```
-Scaricare il file di configurazione Docker per Milvus:
+#### 2. Download del file di configurazione Docker per Milvus
+I seguenti comandi fanno riferimento alla guida per la [configurazione di Milvus Standalone](https://milvus.io/docs/install_standalone-docker-compose.md)
+
 ```bash
 mkdir -p ~/milvus
 cd ~/milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
-Fare riferimento al file [docker-compose.yml](docker-compose.yml) per le modifiche da apportare per adattare le risorse della VM al funzionamento sul nodo master.
+Il file [docker-compose.yml](docker-compose.yml) è stato modificato in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master.
 
-Avvia i container Milvus:
+Per avviare i container Milvus eseguire il seguente comando:
 ```bash
 docker compose up -d
 # Verifica lo stato dei container
 docker compose ps
 ```
-Milvus è accessibile dalla porta 19530
 
 Per terminare e chiudere i container:
 ```bash
