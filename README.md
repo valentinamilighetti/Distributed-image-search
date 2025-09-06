@@ -6,16 +6,16 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 
 ## Architettura del Progetto
 
-- **Hadoop** su cluster a 2 VM (1 master - `namenode`, 1 worker - `datanode1`)
+- **Hadoop** su cluster a 2 VM (1 master `namenode` e  1 worker `datanode1`)
 - **Spark 3.5.6** per il calcolo distribuito e l'archiviazione delle immagini su HDFS
-- **PyTorch** per la generazione degli embedding delle immagini
+- **Jupyter Notebook** per il calcolo degli embedding con **PyTorch** e l'archiviazione su Milvus
 - **Milvus** come database vettoriale per l’indicizzazione e la ricerca
 - **FastAPI** come backend per l’esposizione delle API
-- **Jupyter Notebook** per il calcolo degli embedding e l'archiviazione su Milvus
 
 ---
 
 ## Configurazione Cluster
+Di seguito sono descritti tutti i passaggi necessari alla configurazione delle due macchine per operare con le tecnologie sopra citate.
 
 ### Hadoop
 - Sistema operativo: **Lubuntu**
@@ -370,7 +370,7 @@ L'interfaccia utente è un'applicazione web costruita con FastAPI come backend e
 
 ## Come Eseguire il Progetto
 Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per similarità delle immagini.
-1. Come primo passaggio, avviare HDFS, yarn, Milvus e pyspark sul master:
+1. Come primo passaggio, avviare HDFS, Yarn, Milvus e pyspark sul master:
     ```bash
     start.dfs.sh
     start-yarn.sh
@@ -388,7 +388,7 @@ Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per
     uvicorn main:app --reload
     ```
 4. Collegarsi a [127.0.0.1:8000](http://127.0.0.1:8000/)
-5. Caricare un'immagine e selezionare il numero di immagini da mostrare ad output
+5. Caricare un'immagine e selezionare il numero di immagini da mostrare in output
 6. Visualizzare i risultati
 
 **Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
