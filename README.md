@@ -8,7 +8,7 @@ Questo progetto realizza un motore di ricerca per immagini su un database distri
 
 - **Hadoop** su cluster a 2 VM (1 master `namenode` e  1 worker `datanode1`)
 - **Spark 3.5.6** per il calcolo distribuito e l'archiviazione delle immagini su HDFS
-- **Jupyter Notebook** per il calcolo degli embedding con **PyTorch** e l'archiviazione su Milvus
+- **PyTorch** per il calcolo degli embedding 
 - **Milvus** come database vettoriale per l’indicizzazione e la ricerca
 - **FastAPI** come backend per l’esposizione delle API
 
@@ -83,7 +83,67 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     192.168.100.5 datanode1
     ```
 11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
-12. da finire....
+#### VM Master
+12. configurare la porta di Hadoop 
+    ```bash
+    sudo nano /usr/local/hadoop/etc/hadoop/core-site.xml
+
+    # aggiungere all\'interno del segmento <configuration>
+    <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://namenode:9000</value>
+    </property>
+    ```
+13. configurare HDFS
+    ```bash
+    sudo nano /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+
+    # aggiungere all\'interno del segmento <configuration>
+    <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/usr/local/hadoop/data/nameNode</value>
+    </property>
+    <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/usr/local/hadoop/data/dataNode</value>
+    </property>
+    <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+    </property>
+    ```
+14. denominare i nodi secondari
+    ```bash
+    sudo nano /usr/local/hadoop/etc/hadoop/workers
+
+    # all\'interno del file scrivere i nomi dei worker
+    namenode
+    datanode1
+    ```
+15. copiare i file nel nodo worker
+    ```bash
+    scp /usr/local/hadoop/etc/hadoop/* datanode1:/usr/local/hadoop/etc/hadoop/
+    ```
+16. salvare le configurazioni e formattare per poi avviare HDFS
+    ```bash
+    source /etc/environment
+    hdfs namenode -format
+    start-dfs.sh
+    ```
+#### VM Worker
+17. configurare Yarn   
+    ```bash
+    sudo nano /usr/local/hadoop/etc/hadoop/yarn-site.xml
+
+    # aggiungere la seguente proprietà 
+    <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>namenode</value>
+    </property>
+
+    # avviare Yarn
+    start-yarn.sh
+    ``` 
 
 ### Spark versione 3.5.6
 Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
