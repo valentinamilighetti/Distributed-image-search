@@ -1,13 +1,52 @@
 :root {
-    --primary: #4361ee;
-    --secondary: #3a0ca3;
-    --accent: #f72585;
-    --light: #f8f9fa;
-    --dark: #212529;
-    --success: #4cc9f0;
-    --border: #dee2e6;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --radius: 12px;
+  --primary: #025951;
+  --primary-dark: #01332d;
+  --primary-light: #038073;
+  
+  --secondary: #034159;
+  --secondary-dark: #012736;
+  --secondary-light: #04668c;
+  
+  --accent: #038073; 
+  --accent-dark: #025951;
+  --accent-light: #029461;
+  
+  --light: #f8f9fa;
+  --light-rgb: 248, 249, 250; 
+  --gray-100: #f1f3f5;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  --dark: #212529;
+  
+  --success: var(--accent-dark);    
+  --info: var(--secondary-light);
+  --warning: #fcc419;
+  --danger: #e03131;
+  
+  --border: var(--gray-300);
+  --border-hover: var(--gray-500);
+  --background: #ffffff;
+  --surface: var(--gray-100);
+  --text: var(--gray-900);
+  --text-muted: var(--gray-600);
+  
+  --primary-hover: #01443d;
+  --primary-active: #012e29;
+  --accent-hover: #029461;
+  --accent-active: #017a50;
+  --accent-light-rgb: 4, 217, 127;
+  --primary-rgb: 2, 89, 81;
+  
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.12);
+  --radius: 12px;
+  --transition: all 0.2s ease-in-out;
 }
 
 * {
@@ -47,7 +86,7 @@ h1 {
     font-weight: 800;
     color: var(--dark);
     margin-bottom: 10px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    background: linear-gradient(90deg, var(--primary-light), var(--accent-light));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -88,7 +127,7 @@ h1 {
 
 .upload-area.active {
     border-color: var(--success);
-    background-color: rgba(76, 201, 240, 0.05);
+    background-color: rgba(var(--accent-light-rgb), 0.1);
 }
 
 .upload-icon {
@@ -113,7 +152,7 @@ h1 {
 
 .btn {
     display: inline-block;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    background: linear-gradient(90deg, var(--primary-light), var(--secondary-light));
     color: white;
     padding: 14px 28px;
     border-radius: 50px;
@@ -122,12 +161,12 @@ h1 {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+    box-shadow: 0 4px 8px rgba(var(--primary-rgb), 0.3);
 }
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(67, 97, 238, 0.4);
+    box-shadow: 0 6px 12px rgba(var(--primary-rgb), 0.4);
 }
 
 .btn:active {
