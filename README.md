@@ -448,8 +448,13 @@ Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per
     uvicorn main:app --reload
     ```
 4. Collegarsi a [127.0.0.1:8000](http://127.0.0.1:8000/)
+   
+   ![landing page](image1.png)
 5. Caricare un'immagine e selezionare il numero di immagini da mostrare in output
 6. Visualizzare i risultati
+  
+
+   ![landing page](image2.png)
 
 **Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
 
