@@ -16,7 +16,7 @@ from io import BytesIO
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Importa le tue funzioni esistenti
+# Importa le funzioni esistenti
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 weights = models.ResNet50_Weights.DEFAULT
 model = models.resnet50(weights=weights)
@@ -32,7 +32,7 @@ transform = transforms.Compose([
 ])
 
 def get_embedding(image: Image.Image) -> np.ndarray:
-    """Converte un'immagine in embedding 2048-dim con ResNet50"""
+    # converte un'immagine in embedding 2048-dim con ResNet50
     tensor = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
         emb = model(tensor).cpu().numpy().flatten()
@@ -52,8 +52,7 @@ def search_similar_images(query_img: Image.Image, topk=5):
 app = FastAPI()
 hdfs = fs.HadoopFileSystem("namenode", port=9000, user="hadoopuser")
 
-# Inizializza la connessione a Milvus e il modello ResNet50
-# Puoi farlo una volta all'avvio dell'app per efficienza
+# Inizializza la connessione a Milvus 
 @app.on_event("startup")
 async def startup_event():
     connections.connect("default", host="192.168.100.4", port="19530")
@@ -84,14 +83,11 @@ def get_image(path: str):
 @app.post("/search_similar")
 async def search_similar_images_api(file: UploadFile = File(...), count: int=6):
     try:
-        # Leggi i dati dell'immagine e convertili in un oggetto PIL.Image
         image_data = await file.read()
         query_img = Image.open(BytesIO(image_data)).convert("RGB")
 
-        # Esegui la ricerca con la tua funzione
         results = search_similar_images(query_img, topk=count)
 
-        # Prepara la risposta JSON
         response_data = []
         for hit in results:
             response_data.append({
