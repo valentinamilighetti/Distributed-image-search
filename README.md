@@ -35,10 +35,12 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
 2. creare inizialmente 1 VM con una distribuzione Linux leggera basata su Ubuntu, ad esempio **Lubuntu 24.04**.
 3. installare e configurare **SSH**, necessario per la comunicazione tra i nodi del cluster
 4. installare **Java openjdk versione 11** (al posto della versione 8)
+   
     ```bash
     sudo apt install openjdk-11-jdk
     ```
 5. Scaricare ed estrarre **Hadoop versione 3.4.1** da apache.org
+   
     ```bash
     # download archivio nella home
     sudo wget -P ~ https://dlcdn.apache.org/hadoop/common/hadoop-3.4.1/hadoop-3.4.1.tar.gz
@@ -53,6 +55,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/
     ```
 6. modifica **variabili di ambiente** per hadoop
+   
     ```bash
     #modificare le variabili di sistema con il comando
     sudo nano /etc/environment
@@ -70,7 +73,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     in questo caso la VM Master è stata chiamata *namenode*
   mentre la VM worker è stata chiamata *datanode1*
 
-10. modificare in entrambe le VM il file hosts che associa gli indirizzi ip delle macchine con il loro hostname. 
+10.  modificare in entrambe le VM il file hosts che associa gli indirizzi ip delle macchine con il loro hostname. 
     ```bash
     # ottenere indirizzo ip associato a entrambe le VM
     ip addr
@@ -82,9 +85,10 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     192.168.100.4 namenode
     192.168.100.5 datanode1
     ```
-11. in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
+11.  in ciascuna VM creare la chiave SSH e condividerla con l'altra VM
 #### VM Master
-12. configurare la porta di Hadoop 
+12.  configurare la porta di Hadoop 
+  
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/core-site.xml
 
@@ -95,6 +99,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     </property>
     ```
 13. configurare HDFS
+  
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/hdfs-site.xml
 
@@ -113,6 +118,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     </property>
     ```
 14. denominare i nodi secondari
+    
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/workers
 
@@ -121,17 +127,19 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     datanode1
     ```
 15. copiare i file nel nodo worker
+    
     ```bash
     scp /usr/local/hadoop/etc/hadoop/* datanode1:/usr/local/hadoop/etc/hadoop/
     ```
 16. salvare le configurazioni e formattare per poi avviare HDFS
+    
     ```bash
     source /etc/environment
     hdfs namenode -format
     start-dfs.sh
     ```
 #### VM Worker
-17. configurare Yarn   
+17.  configurare Yarn   
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/yarn-site.xml
 
@@ -148,10 +156,12 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
 ### Spark versione 3.5.6
 Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spark-on-ubuntu-965266d290d6)
 - Scaricare l'archivio Spark
+  
   ```bash
   wget https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6.tgz
   ```
 - Creare una directory dedicata dove estrarre il file tar
+  
   ```bash
   mkdir ~/spark
   mv spark-3.5.6.tgz spark/
@@ -159,6 +169,7 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
   tar -xvzf spark-3.5.1.tgz
   ```
 - Configurazione delle variabili d'ambiente nel file Bash:
+  
   ```bash
   nano ~/.bashrc
 
@@ -187,6 +198,7 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
   source ~/.bashrc
   ```
 - Configurazione del file `spark-env.sh` sul nodo master
+  
   ```bash
   cd ~/spark/spark-3.5.6 …../conf$ 
   cp spark-env.sh.template spark-env.sh
@@ -197,23 +209,27 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
   export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
   ```
 - Creare il file `slaves` sul nodo master e inserire i nomi di master e slave:
+  
   ```bash
   namenode
   Datanode1
   ```
 - Per avviare master e slave:
+  
   ```bash
   start-all.sh
   ```
 
 ### Python e pacchetti necessari
 - Creazione ambiente virtuale con **Python 3.11**
+  
   ```bash
   sudo apt install python3.11 python3.11-venv
   python3.11 -m venv pytorch_env
   source pytorch_env/bin/activate 
   ```
 - Installazione pacchetti:
+  
   ```bash
   pip install pyspark==3.5.6
   pip install pyarrow==12.0.1
@@ -226,6 +242,7 @@ Fare riferimento alla [guida](https://medium.com/@redswitches/how-to-install-spa
   pip install jupyter
   ```
 - Avvio di **Jupyter Notebook** dal nodo master
+  
   ```bash
   source pytorch_env/bin/activate 
   pyspark
@@ -341,8 +358,8 @@ Le immagini vengono caricate come file binari in un DataFrame Spark:
 
 Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una User Defined Function (UDF) ottimizzata per l'elaborazione in batch (predict_batch_udf). La logica è la seguente:
 
-- **Inizializzazione per Worker**: Su ciascun esecutore Spark, una funzione (make_resnet_fn) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
-- **Elaborazione in Batch**: La UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
+- **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (make_resnet_fn) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
+- **Elaborazione in Batch**: la UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
 - **Calcolo in parallelo**: Spark gestisce automaticamente la distribuzione dei dati tra i vari esecutori
 ```bash
 # Applica la UDF per calcolare gli embedding sulla colonna 'content'
@@ -363,8 +380,8 @@ df_embeddings.write.mode("overwrite").parquet(
 ```
 
 ### 5. Caricamento su Milvus
-L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine e embedding) nel database vettoriale Milvus. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
-1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una "collezione" (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine (testo) e l'embedding (vettore a virgola mobile).
+L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine ed embedding) nel database vettoriale Milvus. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
+1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine testo e l'embedding.
     ```bash
     import pymilvus
 
@@ -379,14 +396,15 @@ L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine e embedd
     # Crea la collezione
     collection = Collection(name=COLLECTION_NAME, schema=schema)
     ```
-2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando notevolmente il di caricamento.
+2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando il caricamento.
+
    ```bash
    df_with_ids = df_from_parquet.withColumn("id", monotonically_increasing_id())
    df_with_ids.foreachPartition(upload_partition_to_milvus)
    # ciascuna partizione farà
    collection.insert(data_to_insert)
    ```
-3. **Creazione dell'Indice e Caricamento in Memoria**: Una volta che tutti i dati sono stati inseriti, dal driver vengono inviati a Milvus i comandi finali:
+3. **Creazione dell'indice e caricamento in memoria**: Una volta che tutti i dati sono stati inseriti, dal driver vengono inviati a Milvus i comandi finali:
     ```bash
     # Per assicurare che tutti i dati siano stati scritti su disco:
     collection.flush()
@@ -404,16 +422,16 @@ L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine e embedd
 
 ## Applicazione web per la ricerca delle immagini 
 L'interfaccia utente è un'applicazione web costruita con FastAPI come backend e un frontend basato su un singolo file HTML:
-- **Frontend([index.html](index.html))**: è realizzata con HTML, CSS e JavaScript e permette di caricare un'immagine tramite click o trascinamento (drag & drop), selezionare il numero di risultati desiderati e visualizzare le immagini simili restituite dal sistema.
+- **Frontend([index.html](index.html))**: è realizzata con HTML, CSS e JavaScript e permette di caricare un'immagine tramite click o trascinamento, selezionare il numero di risultati desiderati e visualizzare le immagini simili restituite dal sistema.
 - **Backend([main.py](main.py))** un server web basato su FastAPI che espone le API necessarie per la ricerca. All'avvio, il server si connette a Milvus e carica in memoria la collezione di immagini. Gestisce due endpoint principali:
-  - `POST /search_similar`: riceve l'immagine caricata dall'utente per la ricerca di immagini simili. Il codice Python prevede le due seguenti funzioni, per il rispettivo calcolo dell'embedding dell'immagine di input e la ricerca su Milvus di k immagini di output:
+  - `POST /search_similar`: riceve l'immagine caricata dall'utente per la ricerca. Il codice Python prevede le due seguenti funzioni, per il rispettivo calcolo dell'embedding dell'immagine di input e la ricerca su Milvus di k immagini di output:
     ```bash
     def get_embedding(image: Image.Image) -> np.ndarray:
         """Converte un'immagine in embedding 2048-dim con ResNet50"""
         tensor = transform(image).unsqueeze(0).to(device)
         with torch.no_grad():
             emb = model(tensor).cpu().numpy().flatten()
-        return emb / np.linalg.norm(emb)  # normalizza per COSINE
+        return emb / np.linalg.norm(emb) 
 
     def search_similar_images(query_img: Image.Image, topk=5):
         emb = get_embedding(query_img)

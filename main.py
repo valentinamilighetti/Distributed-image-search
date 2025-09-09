@@ -93,7 +93,6 @@ def get_image(path: str):
 @app.post("/search_similar")
 async def search_similar_images_api(file: UploadFile = File(...), count: int=6):
     try:
-        # Leggi i dati dell'immagine e convertili in un oggetto PIL.Image
         image_data = await file.read()
         query_img = Image.open(BytesIO(image_data)).convert("RGB")
 
