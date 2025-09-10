@@ -206,7 +206,9 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
   ```
 
 ### Python e pacchetti necessari
-- Creare l'ambiente virtuale con **Python 3.11** (NOTA: Python 3.12 ha problemi di compatibilità con Spark e pyarrow)
+- Creare il **Virtual Environment** con **Python 3.11** 
+
+  (NOTA: Python 3.12 ha problemi di compatibilità con Spark e pyarrow)
   
   L'ambiente deve essere presente su entrambi i nodi `namenode` e `datanode1`
   ```bash
@@ -214,7 +216,7 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
   python3.11 -m venv pytorch_env
   source pytorch_env/bin/activate 
   ```
-- Installazione pacchetti python:
+- Installare i pacchetti python:
   
   ```bash
   # su entrambi i nodi
@@ -228,46 +230,54 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
   pip install notebook
   pip install jupyter
   ```
-- Avvio di **Jupyter Notebook** dal nodo master
-  
-  ```bash
-  source pytorch_env/bin/activate 
-  pyspark
-  ```
 
 ### Configurazione completa variabili d'ambiente
-Modificare il file ~/.bashrc aggiungendo tutte le variabili d'ambiente necessarie per Hadoop, Spark e Jupyter
+- Modificare il file **~/.bashrc** aggiungendo tutte le **variabili d'ambiente** necessarie per **Hadoop**, **Spark** e **Jupyter**
   
   ```bash
+  # aprire il file bashrc
   nano ~/.bashrc
-
-  # aggiungere le seguenti variabili sul nodo master
+  ```
+- Aggiungere in fondo al file bashrc del nodo `Master` le seguenti variabili, adattandole alla propria configurazione:
+  ```bash
+  # variabili per hadoop e yarn
   export HADOOP_HOME="/usr/local/hadoop"
   export HADOOP_COMMON_HOME=$HADOOP_HOME
   export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
   export HADOOP_HDFS_HOME=$HADOOP_HOME
   export HADOOP_MAPRED_HOME=$HADOOP_HOME
   export HADOOP_YARN_HOME=$HADOOP_HOME
+  # variabili per spark e pyspark
+  # modificare i percorsi alle cartelle se differenti
   export SPARK_HOME=~/spark/spark-3.5.6-bin-hadoop3
   export PATH=$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
   export PYSPARK_PYTHON=~/pytorch_env/bin/python3
   export PYSPARK_DRIVER_PYTHON=jupyter
+  # modificare indirizzo ip del server jupyter con quello del nodo master
   export PYSPARK_DRIVER_PYTHON_OPTS='notebook --ip=192.168.100.4 --no-browser --port=8889'
   export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
   export CLASSPATH=$($HADOOP_HOME/bin/hadoop classpath --glob):$HADOOP_CONF_DIR
-
-  # aggiungere le seguenti variabili sul nodo worker
+  ```
+- Aggiungere in fondo al file bashrc del nodo `Worker` le seguenti variabili:
+  ```bash
+  # variabili per spark e pyspark
+  # modificare i percorsi alle cartelle se differenti
   export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
   export SPARK_HOME=~/spark/spark-3.5.6-bin-hadoop3
   export PATH=$SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
   export PYSPARK_PYTHON=~/pytorch_env/bin/python3
-
-  # aggiornare le variabili su entrambi i nodi
+  ```
+- Aggiornare le variabili su entrambi i nodi con il comando:
+  ```bash
   source ~/.bashrc
   ```
-### Milvus
 
-La versione è **Milus Standalone** tramite Docker Compose, che utilizza 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
+### Milvus (nodo Master)
+
+La versione utilizzata per questo progetto è **Milus Standalone** tramite **Docker Compose**, che utilizza 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
+- `milvus-standalone`, che contiene le funzionalità principali di Milvus
+- `etcd`, utilizzato per memorizzare metadati usati dagli altri componenti di Milvus
+- `minio`, è un database ad oggetti usato per memorizzare i dati in modo persistente
 
 #### 1. Installazione di Docker Compose (sul nodo master)
 ```bash
@@ -279,7 +289,7 @@ echo \  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/dock
   (lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
-Per avviare il servizio:
+- Per avviare il servizio:
 ```bash
 sudo systemctl start docker
 # Abilita l'avvio di Docker all'avvio del sistema
@@ -302,16 +312,18 @@ docker compose version
 I seguenti comandi fanno riferimento alla guida per la [configurazione di Milvus Standalone](https://milvus.io/docs/install_standalone-docker-compose.md)
 
 ```bash
+# creare una cartella apposita per milvus
 mkdir -p ~/milvus
 cd ~/milvus
+# scaricare il file docker dal repository di milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
-Il file [docker-compose.yml](docker-compose.yml) è stato modificato in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. è stata inoltre modificata la porta 9000 poichè già in uso da hadoop
+Il file [docker-compose.yml](docker-compose.yml) è stato modificato rispetto a quello predefinito in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. È stata inoltre modificata la porta su cui è in ascolto minio poichè già in uso da Hadoop.
 
 Per avviare i container Milvus eseguire il seguente comando:
 ```bash
 docker compose up -d
-# Verifica lo stato dei container
+# per verificare lo stato dei container
 docker compose ps
 ```
 
@@ -320,21 +332,27 @@ Per terminare e chiudere i container:
 docker compose down
 ```
 
-### Backend API
-- Realizzato con **FastAPI**
-- Installazione:
+### Backend API (nodo Master)
+- Il Backend API è realizzato in python con **FastAPI** ed eseguito in un web server **Uvicorn**
+- All'interno del **virtual environment python** sul nodo Master installare i seguenti pacchetti:
   ```bash
   pip install fastapi "uvicorn[standard]" python-multipart
-- Avvio del server con:
+  ```
+- Copiare i file necessari per il funzionamento del Server FastAPI presenti nella cartella [/ServerFastAPI](./ServerFastAPI/) nel nodo master, in particolare:
+  - il file **main.py** per il backend deve essere copiato nella directory home
+  - i file **index.html** e **style.css** per il frontend devono essere copiati all'interno di una cartella **/static** in home
+
+- Per avviare il server basta eseguire dalla directory home il comando:
   ```bash
   uvicorn main:app --reload
   ```
+- Il codice per il funzionamento del server è descritto in dettaglio nella sezione [Applicazione web per la ricerca delle immagini ](#applicazione-web-per-la-ricerca-delle-immagini)
 
 ## Dataset
 
-Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) e contiene circa 30000 immagini.
+Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset), che contiene circa 30000 immagini reali provenienti da **Flickr**
 
-Dopo il download del dataset è necessario il suo caricamento su HDFS, attraverso il comando 
+Dopo il download del dataset è necessario il suo **caricamento su HDFS**, attraverso il comando 
 ```bash
 hadoop distcp file:///home/hadoopuser/flickr30k_images hdfs:///user/hadoopuser/flickr30k_images
 ```
@@ -346,8 +364,8 @@ Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) h
 Di seguito sono illustrati i passaggi chiave del processo.
 
 ### 1. Caricamento del modello ResNet50
-  È stato utilizzato [resnet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), un modello pre-addestrato già presente su torchvision come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
-  - Il modello viene salvato e distribuito sugli esecutori Spark
+  È stato utilizzato il modello [ResNet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), una rete convoluzionale molto utilizzata per task di image embedding. Il modello pre-addestrato è disponibile su torchvision come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
+  - I pesi del modello vengono salvati e distribuiti agli esecutori Spark
     ```bash
     import torch
     import torchvision.models as models
@@ -363,15 +381,15 @@ Di seguito sono illustrati i passaggi chiave del processo.
     ```
     Il salvataggio dei pesi del modello in un file nello SparkContext permette di distribuire in modo efficiente il modello a tutti gli esecutori che ne avranno bisogno per il calcolo.
 ### 2. Lettura del dataset da HDFS
-Le immagini vengono caricate come file binari in un DataFrame Spark:
+Le immagini vengono caricate da HDFS come file binari in un DataFrame Spark:
   ```bash
   df = spark.read.format("binaryFile").load("hdfs:///user/hadoopuser/flickr30k_images/flickr30k_images/").select("path", "content")
   ```
 ### 3. Generazione distribuita degli Embedding
 
-Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una User Defined Function (UDF) ottimizzata per l'elaborazione in batch (predict_batch_udf). La logica è la seguente:
+Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una **User Defined Function** (UDF) ottimizzata per l'elaborazione in batch (**predict_batch_udf**). La logica è la seguente:
 
-- **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (make_resnet_fn) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
+- **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (*make_resnet_fn*) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
 - **Elaborazione in Batch**: la UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
 - **Calcolo in parallelo**: Spark gestisce automaticamente la distribuzione dei dati tra i vari esecutori
 ```bash
@@ -393,7 +411,7 @@ df_embeddings.write.mode("overwrite").parquet(
 ```
 
 ### 5. Caricamento su Milvus
-L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine ed embedding) nel database vettoriale Milvus. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
+L'ultimo passaggio consiste nel caricare i dati ottenuti (percorso dell'immagine e relativo embedding) nel database vettoriale **Milvus**. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
 1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine testo e l'embedding.
     ```bash
     import pymilvus
@@ -411,12 +429,14 @@ L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine ed embed
     ```
 2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando il caricamento.
 
-   ```bash
-   df_with_ids = df_from_parquet.withColumn("id", monotonically_increasing_id())
-   df_with_ids.foreachPartition(upload_partition_to_milvus)
-   # ciascuna partizione farà
-   collection.insert(data_to_insert)
-   ```
+    ```bash
+    df_with_ids = df_from_parquet.withColumn("id", monotonically_increasing_id())
+    df_with_ids.foreachPartition(upload_partition_to_milvus)
+    ```
+    ciascun worker eseguirà la funzione **upload_partition_to_milvus** al cui interno caricherà la propria partizione nel database con:
+    ```bash
+    collection.insert(data_to_insert)
+    ```
 3. **Creazione dell'indice e caricamento in memoria**: Una volta che tutti i dati sono stati inseriti, dal driver vengono inviati a Milvus i comandi finali:
     ```bash
     # Per assicurare che tutti i dati siano stati scritti su disco:
@@ -434,34 +454,57 @@ L'ultimo passaggio consiste nel caricare i dati (percorso dell'immagine ed embed
     La metrica di distanza utilizzata per calcolare le similarità tra immagini è `COSINE`.
 
 ## Applicazione web per la ricerca delle immagini 
-L'interfaccia utente è un'applicazione web costruita con FastAPI come backend e un frontend basato su un singolo file HTML:
-- **Frontend([index.html](index.html))**: è realizzata con HTML, CSS e JavaScript e permette di caricare un'immagine tramite click o trascinamento, selezionare il numero di risultati desiderati e visualizzare le immagini simili restituite dal sistema.
-- **Backend([main.py](main.py))** un server web basato su FastAPI che espone le API necessarie per la ricerca. All'avvio, il server si connette a Milvus e carica in memoria la collezione di immagini. Gestisce due endpoint principali:
-  - `POST /search_similar`: riceve l'immagine caricata dall'utente per la ricerca. Il codice Python prevede le due seguenti funzioni, per il rispettivo calcolo dell'embedding dell'immagine di input e la ricerca su Milvus di k immagini di output:
-    ```bash
-    def get_embedding(image: Image.Image) -> np.ndarray:
-        """Converte un'immagine in embedding 2048-dim con ResNet50"""
-        tensor = transform(image).unsqueeze(0).to(device)
-        with torch.no_grad():
-            emb = model(tensor).cpu().numpy().flatten()
-        return emb / np.linalg.norm(emb) 
+L'interfaccia utente per la ricerca delle immagini è un'applicazione web costruita con **FastAPI** come backend e un frontend basato su un singolo file HTML. Il codice è disponibile nella cartella [/ServerFastAPI](./ServerFastAPI/) e comprende:
+- **Frontend([index.html](./ServerFastAPI/static/index.html))**: è realizzata con HTML, CSS e JavaScript e permette di caricare un'immagine tramite click o trascinamento, selezionare il numero di risultati desiderati e visualizzare le immagini simili restituite dal sistema.
+- **Backend([main.py](/ServerFastAPI/main.py))** un server web basato su FastAPI che espone le API necessarie per la ricerca. All'avvio, il server si connette a **Milvus**, carica in memoria la collezione di immagini e inizializza il modello **ResNet50**. 
 
-    def search_similar_images(query_img: Image.Image, topk=5):
-        emb = get_embedding(query_img)
-        results = collection.search(
-            data=[emb.tolist()],
-            anns_field="embedding",
-            param={"metric_type": "COSINE", "params": {"nprobe": 10}},
-            limit=topk,
-            output_fields=["path"]
-        )
-        return results[0]
+  Il backend gestisce due **endpoint** principali:
+  - `POST /search_similar`: riceve l'immagine caricata dall'utente, esegue la ricerca sul database e restituisce i risultati con percorso delle immagini e valore di similarità. 
+    ```bash    
+      @app.post("/search_similar")
+      async def search_similar_images_api(file: UploadFile = File(...), count: int=6):
+          try:
+              image_data = await file.read()
+              query_img = Image.open(BytesIO(image_data)).convert("RGB")
+              # Esegui la ricerca sul db
+              results = search_similar_images(query_img, topk=count)
+              # restituisce i risultati come JSON
+              response_data = []
+              for hit in results:
+                  response_data.append({
+                      "path": hit.entity.get("path"),
+                      "similarity": hit.distance
+                  })
+              return JSONResponse(content=response_data)
     ```
-  - `GET /image/`: recupera e trasmette un file immagine direttamente da HDFS, dato il suo percorso. Utilizzato per trasmettere le immagini di output
+
+    Il codice Python prevede le due seguenti funzioni, per il rispettivo calcolo dell'embedding dell'immagine di input e la ricerca su Milvus di k immagini di output:
+      ```bash
+      def get_embedding(image: Image.Image) -> np.ndarray:
+          """Converte un'immagine in embedding 2048-dim con ResNet50"""
+          tensor = transform(image).unsqueeze(0).to(device)
+          with torch.no_grad():
+              emb = feature_extractor(tensor).cpu().numpy().flatten()
+          return emb / np.linalg.norm(emb) 
+
+      def search_similar_images(query_img: Image.Image, topk=5):
+          """Cerca immagini simili in Milvus data un'immagine di query"""
+          emb = get_embedding(query_img)
+          results = collection.search(
+              data=[emb.tolist()],
+              anns_field="embedding",
+              param={"metric_type": "COSINE", "params": {"nprobe": 10}},
+              limit=topk,
+              output_fields=["path"]
+          )
+          return results[0]
+      ```
+  - `GET /image/`: recupera e trasmette un file immagine direttamente da HDFS, dato il suo percorso. Utilizzato per trasmettere le immagini di output al frontend.
 
 ## Come Eseguire il Progetto
 Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per similarità delle immagini.
-1. Come primo passaggio, avviare HDFS, Yarn, Milvus e pyspark sul master:
+I passaggi vanno eseguiti tutti nel nodo `master`.
+1. Come primo passaggio, avviare **HDFS**, **Yarn**, **Milvus** e **pyspark**:
     ```bash
     start.dfs.sh
     start-yarn.sh
@@ -469,23 +512,27 @@ Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per
     cd ~/milvus
     docker compose up -d
     ```
-2. Aprire Jupyter Notebook ed eseguire tutte le celle di [image_embedding_spark.ipynb](image_embedding_spark.ipynb)
+2. **Attivare il Virtual Environment** Python e avviare **pyspark** e **Jupyter**
     ```bash
     source pytorch_env/bin/activate
     pyspark
     ```
-3. Avviare FastAPI
+2. Aprire **Jupyter Notebook** nel browser ed eseguire tutte le celle del notebook [image_embedding_spark.ipynb](image_embedding_spark.ipynb)
+
+    - l'indirizzo del server Jupyter è quello inserito in fase di [Configurazione completa variabili d'ambiente](#configurazione-completa-variabili-dambiente) e corrisponde all'indirizzo ip del master alla porta 8889, per questo progetto l'indirizzo è: _192.168.100.4:8889_
+
+3. Avviare il server **FastAPI**
     ```bash
     uvicorn main:app --reload
     ```
 4. Collegarsi a [127.0.0.1:8000](http://127.0.0.1:8000/)
    
-   ![landing page](image1.png)
+   ![landing page](./images/image1.png)
 5. Caricare un'immagine e selezionare il numero di immagini da mostrare in output
 6. Visualizzare i risultati
-  
 
-   ![landing page](image2.png)
+   ![landing page](./images/image2.png)
+
 
 **Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
 
