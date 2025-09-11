@@ -1,6 +1,6 @@
 # Ricerca di immagini simili con Hadoop, Spark, PyTorch e Milvus
 
-Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di image embedding e un database vettoriale per l’indicizzazione e la ricerca per similarità.
+Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di **image embedding** e un **database vettoriale** per l’indicizzazione e la **ricerca per similarità**.
 
 L’obiettivo è fornire un’interfaccia semplice che permetta all’utente di caricare un’immagine e ottenere come risultato le *k* immagini più simili. Un sistema di questo tipo può risultare utile in molti ambiti, come ad esempio:
 - **E-commerce**: ricerca di prodotti visivamente simili 
@@ -9,23 +9,26 @@ L’obiettivo è fornire un’interfaccia semplice che permetta all’utente di 
 - **Arte e creatività**: esplorazione di riferimenti visivi e fonti di ispirazione 
 
 Nello specifico, sono stati calcolati gli embedding, delle rappresentazioni vettoriali dense delle immagini provenienti da un dataset di dimensione circa 30000, tali per cui a immagini simili corrispondono vettori vicini.
-Una volta ricevuta un'immagine di query, viene calcolato il suo embedding e si ricercano le immagini con embedding più vicino, secondo la metrica coseno. Il workflow appena descritto è sintetizzato dalla seguente immagine:
+Una volta ricevuta un'immagine di query, viene calcolato il suo embedding e si ricercano le immagini con embedding più vicino, secondo la metrica coseno. 
+
+Il workflow appena descritto è sintetizzato dalla seguente immagine:
 <figure>
-<img src="./images/fetch-similar-process.png" alt="Testo alternativo" />
+<img src="./images/fetch-similar-process.png" alt="Processo ricerca per similarità" />
 <figcaption>Fonte: Hugging Face</figcaption>
 </figure>
 
-Per rendere il sistema scalabile ed efficiente, è stato utilizzato un cluster Hadoop con due nodi e Spark per il calcolo distribuito degli embedding. Le immagini sono state caricate su HDFS e gli embedding sul database vettoriale Milvus.
+
+Per rendere il sistema scalabile ed efficiente, è stato utilizzato un **cluster Hadoop** con due nodi e **Spark** per il calcolo distribuito degli embedding. Le immagini sono state caricate su **HDFS** e gli embedding sul database vettoriale **Milvus**.
 
 ---
 
-## Architettura del Progetto
+## Tecnologie utilizzate
 
 - **Hadoop** su cluster a 2 VM (1 master `namenode` e  1 worker `datanode1`)
-- **Spark 3.5.6** per il calcolo distribuito e l'archiviazione delle immagini su HDFS
-- **PyTorch** per il calcolo degli embedding 
+- **Spark 3.5.6** per il calcolo distribuito
+- **PyTorch** per il calcolo degli embedding delle immagini
 - **Milvus** come database vettoriale per l’indicizzazione e la ricerca
-- **FastAPI** come backend per l’esposizione delle API
+- **FastAPI** come backend per l’esposizione delle API di ricerca
 
 ---
 
@@ -33,9 +36,6 @@ Per rendere il sistema scalabile ed efficiente, è stato utilizzato un cluster H
 Di seguito sono descritti tutti i passaggi necessari alla configurazione delle due macchine per operare con le tecnologie sopra citate.
 
 ### Hadoop
-- Sistema operativo: **Lubuntu**
-- Configurazione VM con NAT 
-- Installazione di Hadoop 3.4.1 su `namenode` e `datanode1`
 
 Come cluster Hadoop è stato realizzato un cluster minimale costituito da 2 VM VirtualBox:
 - 1 **VM master** chiamata `namenode`, che svolge sia il ruolo di _NameNode_ che di _DataNode_. 
@@ -46,11 +46,13 @@ Per l'installazione di Hadoop è stata seguita la seguente guida che spiega pass
 - [Guida alla configurazione di Hadoop](https://medium.com/analytics-vidhya/setting-up-hadoop-3-2-1-d5c58338cba1)
 
 Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, in particolare, sono riportati i comandi diversi rispetto alla guida: 
-1. creare in **VirtualBox** una nuova **rete con NAT**, a cui saranno connesse le 2 VM. Per questo esempio è stata creata una rete privata con indirizzo _192.168.100.1/24_
+#### Ambiente VirtualBox
+1. Creare in **VirtualBox** una nuova **rete con NAT**, a cui saranno connesse le 2 VM. Per questo esempio è stata creata una rete privata con indirizzo _192.168.100.1/24_
 #### VM Master NameNode
-2. creare inizialmente 1 VM con una distribuzione Linux leggera basata su Ubuntu, ad esempio **Lubuntu 24.04**
-3. installare e configurare **SSH**, necessario per la comunicazione tra i nodi del cluster
-4. installare **Java openjdk versione 11** (al posto della versione 8)
+2. Creare inizialmente 1 VM con una distribuzione Linux leggera basata su Ubuntu, ad esempio **Lubuntu 24.04**
+    > Si consiglia di assegnare alla VM che fungerà il ruolo di **Master** un minimo di **8 G**B di **RAM** e **2 vCPU**
+3. Installare e configurare **SSH**, necessario per la comunicazione tra i nodi del cluster
+4. Installare **Java openjdk versione 11** (al posto della versione 8)
    
     ```bash
     sudo apt install openjdk-11-jdk
@@ -74,7 +76,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
     # aggiungere in fondo al file il riferimento a JAVA_HOME
     export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/
     ```
-6. modificare **variabili di ambiente** per hadoop
+6. Modificare **variabili di ambiente** per hadoop
    
     ```bash
     #modificare le variabili di sistema con il comando
@@ -84,9 +86,13 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/hadoop/bin:/usr/local/hadoop/sbin"
     JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64/"
     ```
-7. **creare un nuovo utente** `hadoopuser`, che verrà usato dai nodi del cluster, e fornirgli tutti i permessi di root
+7. **creare un nuovo utente** `hadoopuser` nel sistema, che verrà usato dai nodi del cluster, e fornirgli tutti i permessi di root
+    > **NOTA**: Da questo punto tutti i passaggi seguenti vanno eseguiti accedendo con il nuovo utente `hadoopuser`
 #### Ambiente VirtualBox
-8. Nell'ambiente **VirtualBox** **clonare** la VM appena creata per instanziare la VM worker `Datanode`
+8. Nell'ambiente **VirtualBox** **clonare** la VM appena creata per instanziare la VM **worker** `Datanode`
+    
+    > Si consiglia di assegnare alla VM che svolgerà il ruolo di Worker un minimo di **6 GB** di **RAM** e **2 vCPU**
+
 #### VM Master e Worker
 9. Modificare gli **hostname** di entrambe le VM usando il comando
     ```bash
@@ -110,7 +116,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
 
 11. In ciascuna VM **creare la chiave SSH** e condividerla con l'altra VM
 #### VM Master
-12. configurare la porta di Hadoop modificando il file **core-site.xml**
+12. Configurare la porta di Hadoop modificando il file **core-site.xml**
   
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/core-site.xml
@@ -122,7 +128,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
       <value>hdfs://namenode:9000</value>
     </property>
     ```
-13. configurare **HDFS**
+13. Configurare **HDFS**
   
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/hdfs-site.xml
@@ -142,12 +148,12 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
       <value>2</value>
     </property>
     ```
-14. **definire i nodi worker** del cluster nel file **/hadoop/workers**
+14. **Definire i nodi worker** del cluster nel file **/hadoop/workers**, in questa configurazione entrambi i nodi svolgono il ruolo di worker
     
     ```bash
     sudo nano /usr/local/hadoop/etc/hadoop/workers
 
-    # all\'interno del file scrivere gli hostname dei worker
+    # all'interno del file scrivere gli hostname dei worker
     namenode
     datanode1
     ```
@@ -163,19 +169,60 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, i
     hdfs namenode -format
     start-dfs.sh
     ```
-#### VM Worker
-17.  configurare e avviare **Yarn**, il Resource Manager per il cluster Hadoop
+#### VM Master e Worker
+17.  configurare **Yarn**, il Resource Manager per il cluster Hadoop, su entrambi i nodi:
 
       ```bash
       sudo nano /usr/local/hadoop/etc/hadoop/yarn-site.xml
+      ```
+  - Configurazione per il nodo master `namenode`
 
-      # modificare il file
-      # aggiungendo la seguente <property> nel segmento <configuration>
+      ```bash
+      # aggiungere le seguenti <property> nel segmento <configuration>
       <property>
         <name>yarn.resourcemanager.hostname</name>
         <value>namenode</value>
       </property>
+      <property>
+        <name>yarn.scheduler.maximum-allocation-mb</name>
+        <value>6144</value>
+      </property>
+      <property>
+        <name>yarn.scheduler.maximum-allocation-vcores</name>
+        <value>2</value>
+      </property>
+      <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>2048</value>
+      </property>
+      <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>1</value>
+      </property>
+      ```
 
+  - Configurazione per il nodo worker `datanode1`
+
+      ```bash
+      # aggiungere le seguenti <property> nel segmento <configuration>
+      <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>namenode</value>
+      </property>
+      <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>4096</value>
+      </property>
+      <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>2</value>
+      </property>
+      ```
+
+      > **NOTA**: adattare i valori delle proprietà alle risorse disponibili nel proprio cluster. In particolare le proprietà **yarn.scheduler** definiscono le risorse massime allocabili da Yarn per l'intero cluster, mentre le proprietà **yarn.nodemanager.resource** definiscono le risorse allocabili per il singolo nodo. Per questa configurazione il nodo namenode funge sia da master che da worker Yarn quindi ha indicate entrambe le proprietà, mentre nel nodo worker sono indicate solo le proprietà **yarn.nodemanager.resource** 
+
+  - Per avviare Yarn eseguire dal nodo master il comando:
+      ```bash      
       # avviare Yarn
       start-yarn.sh
       ``` 
@@ -186,29 +233,30 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
 1. Scaricare l'archivio di **Spark** dal sito di apache.org nella **versione 3.5.6**
   
   ```bash
-  wget https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6.tgz
+  wget https://dlcdn.apache.org/spark/spark-3.5.6/spark-3.5.6-bin-hadoop3.tgz
   ```
 2.  Creare una directory dedicata dove estrarre il file tar
   
   ```bash
   mkdir ~/spark
-  mv spark-3.5.6.tgz spark/
+  mv spark-3.5.6-bin-hadoop3.tgz spark/
   cd ~/spark
-  tar -xvzf spark-3.5.1.tgz
+  tar -xvzf spark-3.5.6-bin-hadoop3.tgz
   ```
 
-3. Configurare il file `spark-env.sh` sul nodo master
+3. Configurare il file `spark-env.sh` presente nella cartella _conf_ di spark nel nodo `master`
   
   ```bash
-  cd ~/spark/spark-3.5.6 …../conf$ 
+  cd ~/spark/spark-3.5.6-bin-hadoop3/conf
   cp spark-env.sh.template spark-env.sh
   sudo nano spark-env.sh
   
   # aggiungere le seguenti variabili 
+  # modificare l'indirizzo ip con quello del nodo master
   export SPARK_MASTER_HOST=192.168.0.4
   export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
   ```
-4. Creare il file `slaves` sul nodo master e inserire i nomi di master e slave:
+4. Creare il file `slaves` sul nodo `master` e inserire i nomi dei nodi esecutori di Spark, in questo configurazione a 2 VM sono `namenode` e `datanode1` che eseguiranno entrambi i job Spark:
   
   ```bash
   namenode
@@ -221,11 +269,10 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
   ```
 
 ### Python e pacchetti necessari
-- Creare il **Virtual Environment** con **Python 3.11** 
+- Creare il **Virtual Environment** con **Python 3.11** su entrambi i nodi `Master` e `Worker`
 
-  (NOTA: Python 3.12 ha problemi di compatibilità con Spark e pyarrow)
+  > **NOTA**: Python 3.12 ha problemi di compatibilità con Spark e Pyarrow
   
-  L'ambiente deve essere presente su entrambi i nodi `namenode` e `datanode1`
   ```bash
   sudo apt install python3.11 python3.11-venv
   python3.11 -m venv pytorch_env
@@ -333,31 +380,31 @@ cd ~/milvus
 # scaricare il file docker dal repository di milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
-Il file [docker-compose.yml](docker-compose.yml) è stato modificato rispetto a quello predefinito, in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. È stata inoltre modificata la porta su cui è in ascolto `minio`, poichè già in uso da Hadoop.
+> Il file [docker-compose.yml](docker-compose.yml) è stato modificato rispetto a quello predefinito, in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. È stata inoltre modificata la porta su cui è in ascolto `minio`, poichè già in uso da Hadoop.
 
-Per avviare i container Milvus eseguire il seguente comando:
-```bash
-docker compose up -d
-# per verificare lo stato dei container
-docker compose ps
-```
+- Per avviare i container Milvus eseguire il seguente comando:
+  ```bash
+  docker compose up -d
+  # per verificare lo stato dei container
+  docker compose ps
+  ```
 
-Per terminare e chiudere i container:
-```bash
-docker compose down
-```
+- Per terminare e chiudere i container:
+  ```bash
+  docker compose down
+  ```
 
 ### Backend API (nodo Master)
 - Il Backend API è realizzato in python con **FastAPI** ed eseguito in un web server **Uvicorn**
-- All'interno del **virtual environment python** sul nodo Master installare i seguenti pacchetti:
+- All'interno del **virtual environment python** sul nodo `Master` installare i seguenti pacchetti:
   ```bash
   pip install fastapi "uvicorn[standard]" python-multipart
   ```
 - Copiare i file necessari per il funzionamento del Server FastAPI presenti nella cartella [/ServerFastAPI](./ServerFastAPI/) nel nodo master. In particolare:
-  - il file **main.py** per il backend deve essere copiato nella directory home
-  - i file **index.html** e **style.css** per il frontend devono essere copiati all'interno di una cartella **/static** in home
+  - il file **main.py** per il backend deve essere copiato nella directory _home_
+  - i file **index.html** e **style.css** per il frontend devono essere copiati all'interno di una cartella **/static** in _home_
 
-- Per avviare il server basta eseguire dalla directory home il comando:
+- Per avviare il server basta portarsi nella directory _home_ dove si trova il file **main.py** ed eseguire il comando:
   ```bash
   uvicorn main:app --reload
   ```
@@ -379,7 +426,7 @@ Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) h
 Di seguito sono illustrati i passaggi chiave del processo.
 
 ### 1. Caricamento del modello ResNet50
-  È stato utilizzato il modello [ResNet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), una rete convoluzionale molto utilizzata per task di image embedding. Il modello pre-addestrato è disponibile su torchvision come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
+  Per il calcolo degli embedding dalle immagini stato utilizzato il modello [ResNet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), una rete convoluzionale molto utilizzata per questa tipologia di task. Il modello pre-addestrato è disponibile su **torchvision** come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
   - I pesi del modello vengono salvati e distribuiti agli esecutori Spark
     ```bash
     import torch
@@ -394,7 +441,7 @@ Di seguito sono illustrati i passaggi chiave del processo.
     torch.save(state_dict, "/tmp/resnet50_statedict2.pth")
     sc.addFile("/tmp/resnet50_statedict2.pth")
     ```
-    Il salvataggio dei pesi del modello in un file nello SparkContext permette di distribuire in modo efficiente il modello a tutti gli esecutori che ne avranno bisogno per il calcolo.
+    Il salvataggio dei pesi del modello in un file nello **SparkContext** permette di distribuire in modo efficiente il modello a tutti gli esecutori che ne avranno bisogno per il calcolo.
 ### 2. Lettura del dataset da HDFS
 Le immagini vengono caricate da HDFS come file binari in un DataFrame Spark:
   ```bash
@@ -519,7 +566,7 @@ L'interfaccia utente per la ricerca delle immagini è un'applicazione web costru
 ## Come Eseguire il Progetto
 Di seguito sono illustrati i vari passaggi necessari per eseguire la ricerca per similarità delle immagini.
 I passaggi vanno eseguiti tutti nel nodo `master`.
-1. Come primo passaggio, avviare **HDFS**, **Yarn**, **Milvus** e **pyspark**:
+1. Come primo passaggio, avviare **HDFS**, **Yarn**, **Spark** e **Milvus**:
     ```bash
     start.dfs.sh
     start-yarn.sh
@@ -534,13 +581,13 @@ I passaggi vanno eseguiti tutti nel nodo `master`.
     ```
 2. Aprire **Jupyter Notebook** nel browser ed eseguire tutte le celle del notebook [image_embedding_spark.ipynb](image_embedding_spark.ipynb)
 
-    - l'indirizzo del server Jupyter è quello inserito in fase di [Configurazione completa variabili d'ambiente](#configurazione-completa-variabili-dambiente) e corrisponde all'indirizzo ip del master alla porta 8889, per questo progetto l'indirizzo è: _192.168.100.4:8889_
+    > **NOTA**: l'indirizzo del server Jupyter è quello inserito in fase di [Configurazione completa variabili d'ambiente](#configurazione-completa-variabili-dambiente) e corrisponde all'indirizzo ip del master alla porta 8889, per questo progetto l'indirizzo è: _192.168.100.4:8889_
 
 3. Avviare il server **FastAPI**
     ```bash
     uvicorn main:app --reload --host 192.168.100.4
     ```
-4. Collegarsi a [192.168.100.4:8000](http://127.0.0.1:8000/) (è possibile collegarsi si dal master che dal worker)
+4. Collegarsi a [192.168.100.4:8000](http://192.168.100.4:8000/) (è possibile collegarsi sia dal master che dal worker)
    
    ![landing page](./images/image1.png)
 5. Caricare un'immagine e selezionare il numero di immagini da mostrare in output
@@ -549,7 +596,7 @@ I passaggi vanno eseguiti tutti nel nodo `master`.
    ![landing page](./images/image2.png)
 
 
-**Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel database Milvus.
+> **NOTA**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel database Milvus e pronti per la ricerca.
 
 ## Risorse Utili
 
