@@ -170,7 +170,7 @@
             formData.append('count', count);
 
             try {
-                const response = await fetch(`http://127.0.0.1:8000/search_similar?count=${count}`, {
+                const response = await fetch(`http://192.168.100.4:8000/search_similar?count=${count}`, {
                     method: 'POST',
                     body: formData
                 });

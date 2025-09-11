@@ -538,9 +538,9 @@ I passaggi vanno eseguiti tutti nel nodo `master`.
 
 3. Avviare il server **FastAPI**
     ```bash
-    uvicorn main:app --reload
+    uvicorn main:app --reload --host 192.168.100.4
     ```
-4. Collegarsi a [127.0.0.1:8000](http://127.0.0.1:8000/)
+4. Collegarsi a [192.168.100.4:8000](http://127.0.0.1:8000/) (è possibile collegarsi si dal master che dal worker)
    
    ![landing page](./images/image1.png)
 5. Caricare un'immagine e selezionare il numero di immagini da mostrare in output
