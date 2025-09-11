@@ -1,6 +1,17 @@
 # Ricerca di immagini simili con Hadoop, Spark, PyTorch e Milvus
 
-Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di image embedding e un database vettoriale (Milvus) per l’indicizzazione e la ricerca per similarità.
+Questo progetto realizza un motore di ricerca per immagini su un database distribuito, sfruttando tecniche di image embedding e un database vettoriale per l’indicizzazione e la ricerca per similarità.
+
+L’obiettivo è fornire un’interfaccia semplice che permetta all’utente di caricare un’immagine e ottenere come risultato le *k* immagini più simili. Un sistema di questo tipo può risultare utile in molti ambiti, come ad esempio:
+- **E-commerce**: ricerca di prodotti visivamente simili 
+- **Copyright**: individuazione di utilizzi non autorizzati di un’immagine  
+- **Social media**: suggerimento di contenuti coerenti a quelli già apprezzati dall’utente  
+- **Arte e creatività**: esplorazione di riferimenti visivi e fonti di ispirazione 
+
+Nello specifico, sono stati calcolati gli embedding, delle rappresentazioni vettoriali dense delle immagini provenienti da un dataset di dimensione circa 30000, tali per cui a immagini simili corrispondono vettori vicini.
+Una volta ricevuta un'immagine di query, viene calcolato il suo embedding e si ricercano le immagini con embedding più vicino, secondo la metrica coseno.
+
+Per rendere il sistema scalabile ed efficiente, è stato utilizzato un cluster Hadoop con due nodi e Spark per il calcolo distribuito degli embedding. Le immagini sono state caricate su HDFS e gli embedding sul database vettoriale Milvus.
 
 ---
 
