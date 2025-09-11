@@ -9,7 +9,11 @@ L’obiettivo è fornire un’interfaccia semplice che permetta all’utente di 
 - **Arte e creatività**: esplorazione di riferimenti visivi e fonti di ispirazione 
 
 Nello specifico, sono stati calcolati gli embedding, delle rappresentazioni vettoriali dense delle immagini provenienti da un dataset di dimensione circa 30000, tali per cui a immagini simili corrispondono vettori vicini.
-Una volta ricevuta un'immagine di query, viene calcolato il suo embedding e si ricercano le immagini con embedding più vicino, secondo la metrica coseno.
+Una volta ricevuta un'immagine di query, viene calcolato il suo embedding e si ricercano le immagini con embedding più vicino, secondo la metrica coseno. Il workflow appena descritto è sintetizzato dalla seguente immagine:
+<figure>
+<img src="./images/fetch-similar-process.png" alt="Testo alternativo" />
+<figcaption>Fonte: Hugging Face</figcaption>
+</figure>
 
 Per rendere il sistema scalabile ed efficiente, è stato utilizzato un cluster Hadoop con due nodi e Spark per il calcolo distribuito degli embedding. Le immagini sono state caricate su HDFS e gli embedding sul database vettoriale Milvus.
 
