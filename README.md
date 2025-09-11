@@ -34,17 +34,17 @@ Di seguito sono descritti tutti i passaggi necessari alla configurazione delle d
 - Installazione di Hadoop 3.4.1 su `namenode` e `datanode1`
 
 Come cluster Hadoop è stato realizzato un cluster minimale costituito da 2 VM VirtualBox:
-- 1 **VM master** chiamata `namenode`, che svolge sia il ruolo di _NameNode_ sia di _DataNode_. 
+- 1 **VM master** chiamata `namenode`, che svolge sia il ruolo di _NameNode_ che di _DataNode_. 
 (NOTA: in un cluster reale è consigliato mantenere il namenode e i datanodes su macchine distinte per una maggiore stabilità e resilienza del cluster)
 - 1 **VM worker** chiamata `datanode1`, che svolge il ruolo di _DataNode_
 
 Per l'installazione di Hadoop è stata seguita la seguente guida che spiega passo-passo l'installazione e la configurazione su 3 VM (1 NameNode e 2 DataNode) adattandola al caso specifico di 2 VM.
 - [Guida alla configurazione di Hadoop](https://medium.com/analytics-vidhya/setting-up-hadoop-3-2-1-d5c58338cba1)
 
-Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in particolare sono riportati i comandi diversi rispetto alla guida: 
-1. creare in **VirtualBox** una nuova **rete con NAT** a cui saranno connesse le 2 VM, per questo esempio è stata creata una rete privata con indirizzo _192.168.100.1/24_
+Di seguito sono descritti i passaggi chiave per l'installazione del cluster e, in particolare, sono riportati i comandi diversi rispetto alla guida: 
+1. creare in **VirtualBox** una nuova **rete con NAT**, a cui saranno connesse le 2 VM. Per questo esempio è stata creata una rete privata con indirizzo _192.168.100.1/24_
 #### VM Master NameNode
-2. creare inizialmente 1 VM con una distribuzione Linux leggera basata su Ubuntu, ad esempio **Lubuntu 24.04**.
+2. creare inizialmente 1 VM con una distribuzione Linux leggera basata su Ubuntu, ad esempio **Lubuntu 24.04**
 3. installare e configurare **SSH**, necessario per la comunicazione tra i nodi del cluster
 4. installare **Java openjdk versione 11** (al posto della versione 8)
    
@@ -80,7 +80,7 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/hadoop/bin:/usr/local/hadoop/sbin"
     JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64/"
     ```
-7. **creare un nuovo utente** `hadoopuser` che verrà usato dai nodi del cluster e fornirgli tutti i permessi di root
+7. **creare un nuovo utente** `hadoopuser`, che verrà usato dai nodi del cluster, e fornirgli tutti i permessi di root
 #### Ambiente VirtualBox
 8. Nell'ambiente **VirtualBox** **clonare** la VM appena creata per instanziare la VM worker `Datanode`
 #### VM Master e Worker
@@ -88,9 +88,9 @@ Di seguito sono descritti i passaggi chiave per l'installazione del cluster e in
     ```bash
     sudo nano /etc/hostname
     ```
-    in questo caso la VM Master è stata chiamata `namenode` mentre la VM worker è stata chiamata `datanode1`
+    in questo caso, la VM Master è stata chiamata `namenode`, mentre la VM worker è stata chiamata `datanode1`
 
-10.  Modificare in entrambe le VM il file **/etc/hosts** che associa gli indirizzi ip delle macchine con il loro hostname. 
+10.  Modificare in entrambe le VM il file **/etc/hosts** che associa gli indirizzi ip delle macchine con il loro hostname
       ```bash
       # ottenere indirizzo ip associato a entrambe le VM
       ip addr
@@ -288,7 +288,7 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
 La versione utilizzata per questo progetto è **Milus Standalone** tramite **Docker Compose**, che utilizza 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
 - `milvus-standalone`, che contiene le funzionalità principali di Milvus
 - `etcd`, utilizzato per memorizzare metadati usati dagli altri componenti di Milvus
-- `minio`, è un database ad oggetti usato per memorizzare i dati in modo persistente
+- `minio`, un database ad oggetti usato per memorizzare i dati in modo persistente
 
 #### 1. Installazione di Docker Compose (sul nodo master)
 ```bash
@@ -329,7 +329,7 @@ cd ~/milvus
 # scaricare il file docker dal repository di milvus
 wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standalone-docker-compose.yml -O docker-compose.yml
 ```
-Il file [docker-compose.yml](docker-compose.yml) è stato modificato rispetto a quello predefinito in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. È stata inoltre modificata la porta su cui è in ascolto minio poichè già in uso da Hadoop.
+Il file [docker-compose.yml](docker-compose.yml) è stato modificato rispetto a quello predefinito, in modo da adattare i limiti di risorse utilizzate dai container in base a quelle del nodo master. È stata inoltre modificata la porta su cui è in ascolto `minio`, poichè già in uso da Hadoop.
 
 Per avviare i container Milvus eseguire il seguente comando:
 ```bash
@@ -349,7 +349,7 @@ docker compose down
   ```bash
   pip install fastapi "uvicorn[standard]" python-multipart
   ```
-- Copiare i file necessari per il funzionamento del Server FastAPI presenti nella cartella [/ServerFastAPI](./ServerFastAPI/) nel nodo master, in particolare:
+- Copiare i file necessari per il funzionamento del Server FastAPI presenti nella cartella [/ServerFastAPI](./ServerFastAPI/) nel nodo master. In particolare:
   - il file **main.py** per il backend deve essere copiato nella directory home
   - i file **index.html** e **style.css** per il frontend devono essere copiati all'interno di una cartella **/static** in home
 
@@ -370,7 +370,7 @@ hadoop distcp file:///home/hadoopuser/flickr30k_images hdfs:///user/hadoopuser/f
 
 ## Notebook: calcolo degli embedding e caricamento su Milvus
 
-Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) ha il compito di leggere le immagini dal cluster HDFS, calcolare i vettori di embedding per ciascuna di esse in modo distribuito utilizzando Spark, e infine indicizzare questi vettori nel database Milvus per renderli ricercabili.
+Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) ha il compito di leggere le immagini dal cluster HDFS, calcolare i vettori di embedding per ciascuna di esse in modo distribuito utilizzando Spark e, infine, indicizzare questi vettori nel database Milvus per renderli ricercabili.
 
 Di seguito sono illustrati i passaggi chiave del processo.
 
@@ -400,7 +400,7 @@ Le immagini vengono caricate da HDFS come file binari in un DataFrame Spark:
 
 Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una **User Defined Function** (UDF) ottimizzata per l'elaborazione in batch (**predict_batch_udf**). La logica è la seguente:
 
-- **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (*make_resnet_fn*) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione.
+- **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (*make_resnet_fn*) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione
 - **Elaborazione in Batch**: la UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
 - **Calcolo in parallelo**: Spark gestisce automaticamente la distribuzione dei dati tra i vari esecutori
 ```bash
@@ -423,7 +423,7 @@ df_embeddings.write.mode("overwrite").parquet(
 
 ### 5. Caricamento su Milvus
 L'ultimo passaggio consiste nel caricare i dati ottenuti (percorso dell'immagine e relativo embedding) nel database vettoriale **Milvus**. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
-1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine testo e l'embedding.
+1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine testo e l'embedding
     ```bash
     import pymilvus
 
@@ -438,7 +438,7 @@ L'ultimo passaggio consiste nel caricare i dati ottenuti (percorso dell'immagine
     # Crea la collezione
     collection = Collection(name=COLLECTION_NAME, schema=schema)
     ```
-2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando il caricamento.
+2. **Caricamento in Parallelo (`foreachPartition`)**: Ogni worker stabilisce la propria connessione a Milvus e inserisce autonomamente il proprio sottoinsieme di dati. Questo approccio distribuisce il carico di rete e di scrittura, accelerando il caricamento
 
     ```bash
     df_with_ids = df_from_parquet.withColumn("id", monotonically_increasing_id())
@@ -545,7 +545,7 @@ I passaggi vanno eseguiti tutti nel nodo `master`.
    ![landing page](./images/image2.png)
 
 
-**Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel dataset Milvus.
+**Nota**: il passaggio 2 viene eseguito solo la prima volta, perché successivamente gli embedding delle immagini del dataset saranno già presenti nel database Milvus.
 
 ## Risorse Utili
 
