@@ -232,41 +232,41 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
 
 1. Scaricare l'archivio di **Spark** dal sito di apache.org nella **versione 3.5.6**
   
-  ```bash
-  wget https://dlcdn.apache.org/spark/spark-3.5.6/spark-3.5.6-bin-hadoop3.tgz
-  ```
+    ```bash
+    wget https://dlcdn.apache.org/spark/spark-3.5.6/spark-3.5.6-bin-hadoop3.tgz
+    ```
 2.  Creare una directory dedicata dove estrarre il file tar
   
-  ```bash
-  mkdir ~/spark
-  mv spark-3.5.6-bin-hadoop3.tgz spark/
-  cd ~/spark
-  tar -xvzf spark-3.5.6-bin-hadoop3.tgz
-  ```
+    ```bash
+    mkdir ~/spark
+    mv spark-3.5.6-bin-hadoop3.tgz spark/
+    cd ~/spark
+    tar -xvzf spark-3.5.6-bin-hadoop3.tgz
+    ```
 
 3. Configurare il file `spark-env.sh` presente nella cartella _conf_ di spark nel nodo `master`
   
-  ```bash
-  cd ~/spark/spark-3.5.6-bin-hadoop3/conf
-  cp spark-env.sh.template spark-env.sh
-  sudo nano spark-env.sh
-  
-  # aggiungere le seguenti variabili 
-  # modificare l'indirizzo ip con quello del nodo master
-  export SPARK_MASTER_HOST=192.168.0.4
-  export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-  ```
+    ```bash
+    cd ~/spark/spark-3.5.6-bin-hadoop3/conf
+    cp spark-env.sh.template spark-env.sh
+    sudo nano spark-env.sh
+    
+    # aggiungere le seguenti variabili 
+    # modificare l'indirizzo ip con quello del nodo master
+    export SPARK_MASTER_HOST=192.168.0.4
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    ```
 4. Creare il file `slaves` sul nodo `master` e inserire i nomi dei nodi esecutori di Spark, in questo configurazione a 2 VM sono `namenode` e `datanode1` che eseguiranno entrambi i job Spark:
   
-  ```bash
-  namenode
-  datanode1
-  ```
+    ```bash
+    namenode
+    datanode1
+    ```
 5. Per avviare master e slave di Spark usare il comando:
   
-  ```bash
-  start-all.sh
-  ```
+    ```bash
+    start-all.sh
+    ```
 
 ### Python e pacchetti necessari
 - Creare il **Virtual Environment** con **Python 3.11** su entrambi i nodi `Master` e `Worker`
@@ -336,7 +336,7 @@ Fare riferimento alla seguente  [guida](https://medium.com/@redswitches/how-to-i
 
 ### Milvus (nodo Master)
 
-La versione utilizzata per questo progetto è **Milus Standalone** tramite **Docker Compose**, che utilizza 3 container attivi sul nodo master: `milvus-standalone`, `etcd` e `minio`
+La versione utilizzata per questo progetto è **Milus Standalone** tramite **Docker Compose**, che utilizza 3 container attivi sul nodo master: 
 - `milvus-standalone`, che contiene le funzionalità principali di Milvus
 - `etcd`, utilizzato per memorizzare metadati usati dagli altri componenti di Milvus
 - `minio`, un database ad oggetti usato per memorizzare i dati in modo persistente
@@ -412,7 +412,7 @@ wget https://github.com/milvus-io/milvus/releases/download/v2.6.0/milvus-standal
 
 ## Dataset
 
-Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset), che contiene circa 30000 immagini reali provenienti da **Flickr**
+Il progetto utilizza il dataset [Flickr30k Images](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset), che contiene circa 30000 immagini reali provenienti da **Flickr**.
 
 Dopo il download del dataset è necessario il suo **caricamento su HDFS**, attraverso il comando 
 ```bash
@@ -426,7 +426,7 @@ Il notebook Jupyter [image_embedding_spark.ipynb](image_embedding_spark.ipynb) h
 Di seguito sono illustrati i passaggi chiave del processo.
 
 ### 1. Caricamento del modello ResNet50
-  Per il calcolo degli embedding dalle immagini stato utilizzato il modello [ResNet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), una rete convoluzionale molto utilizzata per questa tipologia di task. Il modello pre-addestrato è disponibile su **torchvision** come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
+  Per il calcolo degli embedding dalle immagini è stato utilizzato il modello [ResNet50](https://docs.pytorch.org/vision/main/models/generated/torchvision.models.resnet50.html), una rete convoluzionale molto utilizzata per questa tipologia di task. Il modello pre-addestrato è disponibile su **torchvision** come `torchvision.models.resnet50` con pesi `ResNet50_Weights.DEFAULT`.
   - I pesi del modello vengono salvati e distribuiti agli esecutori Spark
     ```bash
     import torch
@@ -452,7 +452,7 @@ Le immagini vengono caricate da HDFS come file binari in un DataFrame Spark:
 Questo è il passaggio computazionalmente più oneroso, per cui l'inferenza del modello viene eseguita in parallelo su tutti i nodi worker utilizzando una **User Defined Function** (UDF) ottimizzata per l'elaborazione in batch (**predict_batch_udf**). La logica è la seguente:
 
 - **Inizializzazione per Worker**: su ciascun esecutore Spark, una funzione (*make_resnet_fn*) carica il modello ResNet50 leggendo il file dei pesi distribuito in precedenza. Il modello viene preparato per l'estrazione delle feature rimuovendo l'ultimo layer di classificazione
-- **Elaborazione in Batch**: la UDF riceve in input batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
+- **Elaborazione in Batch**: la UDF riceve in input un batch di immagini (rappresentate come byte). Per ogni immagine, esegue i passaggi di pre-processing necessari (ridimensionamento, normalizzazione) e la passa al modello per calcolare il vettore di embedding a 2048 dimensioni
 - **Calcolo in parallelo**: Spark gestisce automaticamente la distribuzione dei dati tra i vari esecutori
 ```bash
 # Applica la UDF per calcolare gli embedding sulla colonna 'content'
@@ -474,7 +474,7 @@ df_embeddings.write.mode("overwrite").parquet(
 
 ### 5. Caricamento su Milvus
 L'ultimo passaggio consiste nel caricare i dati ottenuti (percorso dell'immagine e relativo embedding) nel database vettoriale **Milvus**. Anche questa operazione viene parallelizzata per massimizzare l'efficienza e consiste nei seguenti passaggi:
-1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine testo e l'embedding
+1. **Creazione della Collezione**: Dal nodo driver, viene stabilita una connessione a Milvus per creare una collezione (l'equivalente di una tabella in SQL) con uno schema ben definito: un ID univoco, il percorso dell'immagine e l'embedding
     ```bash
     import pymilvus
 
